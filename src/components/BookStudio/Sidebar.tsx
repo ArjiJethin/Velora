@@ -554,40 +554,8 @@ export const Sidebar: React.FC = () => {
                   Theme & Template
                 </span>
 
-                {/* 1. Workspace Theme Selection */}
-                <div className="mb-6">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5 block">
-                    Workspace Accent
-                  </span>
-                  <p className="text-[9.5px] text-neutral-500 mb-3 leading-normal">
-                    Applies color accents to the editor panels, selection outlines, and glows.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.values(WORKSPACE_THEMES).map((wt) => {
-                      const isActive = workspaceThemeId === wt.id;
-                      return (
-                        <button
-                          key={wt.id}
-                          onClick={() => setWorkspaceThemeId(wt.id)}
-                          className={`flex items-center gap-1.5 p-2 rounded-xl border text-[11px] font-medium transition-all text-left cursor-pointer ${
-                            isActive
-                              ? "bg-black/[0.02] dark:bg-white/[0.04] border-[var(--accent-color)] text-neutral-800 dark:text-white shadow-[0_0_8px_var(--accent-glow)]"
-                              : "bg-transparent border-black/5 dark:border-white/[0.05] text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
-                          }`}
-                        >
-                          <span
-                            className="w-2.5 h-2.5 rounded-full border border-black/35 flex-shrink-0"
-                            style={{ backgroundColor: wt.accentColor }}
-                          />
-                          <span className="truncate">{wt.name.split(" ")[0]}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2. Book Design Template Selection */}
-                <div className="border-t border-black/5 dark:border-white/[0.06] pt-4 pb-4">
+                {/* Book Design Template Selection */}
+                <div className="pt-0 pb-4">
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5 block">
                     Book Template Style
                   </span>
@@ -661,7 +629,7 @@ export const Sidebar: React.FC = () => {
                                 />
                               </div>
                               
-                              <p className="text-[9px] text-neutral-400 leading-normal line-clamp-2">
+                              <p className="text-[9px] text-neutral-450 leading-normal line-clamp-2">
                                 {bt.description}
                               </p>
                             </div>
@@ -710,6 +678,7 @@ export const Sidebar: React.FC = () => {
                 </div>
               </div>
             )}
+
             {/* Elements Tab Panel */}
             {activeTab === "elements" && (
               <div className="flex flex-col h-full w-[280px] p-4">

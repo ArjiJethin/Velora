@@ -51,42 +51,27 @@ export const Toolbar: React.FC = () => {
       <header className="theme-transition h-16 w-full px-6 flex items-center justify-between select-none z-30 velora-ceramic">
         {/* Left: Brand & Title */}
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2.5">
-            {/* Logo Icon */}
-            <div className="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-black/5 to-black/10 dark:from-white/10 dark:to-white/5 border border-black/10 dark:border-white/10 shadow-inner">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+          <div className="flex items-center gap-3 px-1 py-1 select-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Velora Logo"
+              className="w-8 h-8 object-contain flex-shrink-0"
+            />
+            <div className="flex flex-col justify-center">
+              <span 
+                className="text-[20px] leading-none tracking-[0.14em] text-[#1F1F1F] dark:text-[#EAEAEA]"
+                style={{ 
+                  fontFamily: "var(--font-cormorant), serif", 
+                  fontWeight: 600 
+                }}
               >
-                <path
-                  d="M4 19.5C4 18.837 4.26339 18.2011 4.73223 17.7322C5.20107 17.2634 5.83696 17 6.5 17H20"
-                  stroke={theme.accentColor}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="theme-transition"
-                />
-                <path
-                  d="M6.5 2H20V22H6.5C5.83696 22 5.20107 21.7366 4.73223 21.2678C4.26339 20.7989 4 20.163 4 19.5V4.5C4 3.83696 4.26339 3.20107 4.73223 2.73223C5.20107 2.26339 5.83696 2 6.5 2Z"
-                  stroke={theme.accentColor}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="theme-transition"
-                />
-              </svg>
-              <div
-                className="absolute inset-0 rounded-lg filter blur-md opacity-30 theme-transition"
-                style={{ backgroundColor: theme.accentColor }}
-              />
+                VELORA
+              </span>
+              <span className="text-[7.5px] uppercase tracking-[0.25em] text-[#D4AF37] dark:text-[#E8C35A] font-bold leading-none mt-1 font-poppins">
+                Book Studio
+              </span>
             </div>
-            {/* Logo Text */}
-            <span className="font-poppins tracking-wider text-[17px] font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent">
-              VELORA
-            </span>
           </div>
 
           <div className="h-4 w-px bg-black/10 dark:bg-white/10" />
