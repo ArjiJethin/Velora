@@ -491,7 +491,7 @@ export const Workspace: React.FC = () => {
   return (
     <div
       ref={workspaceRef}
-      className={`flex-1 flex flex-col items-center justify-between relative overflow-hidden select-none lumora-workspace-light ${
+      className={`flex-1 flex flex-col items-center justify-between relative overflow-hidden select-none velora-workspace-light ${
         readingMode ? "p-0 h-screen w-screen bg-stone-100/98 dark:bg-[#070A0F]/95 z-50 fixed inset-0" : "p-6 h-[calc(100vh-4rem)]"
       }`}
     >
@@ -503,7 +503,7 @@ export const Workspace: React.FC = () => {
 
       {/* Floating Toolbar controls (Hidden in reading mode) */}
       {!readingMode && (
-        <div className="w-full max-w-4xl flex items-center justify-between px-4 py-2 rounded-full lumora-capsule z-10 text-xs">
+        <div className="w-full max-w-4xl flex items-center justify-between px-4 py-2 rounded-full velora-capsule z-10 text-xs">
           {/* Left view toggles */}
           <div className="flex items-center gap-1 bg-black/5 dark:bg-black/30 p-0.5 rounded-lg border border-black/10 dark:border-white/5">
             <button

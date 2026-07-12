@@ -153,7 +153,7 @@ export const generateMockBook = (): BookDocument => {
         style: { backgroundColor: "#111111" }
       }),
       createTextElement("cr-body", 
-        "Copyright © 2026 by Aurelia Vance\n\nAll rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher.\n\nFirst Lumora Edition: June 2026\nPublished by Lumora Press, Eldoria City\n\nPrinted in the United Kingdom", 
+        "Copyright © 2026 by Aurelia Vance\n\nAll rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher.\n\nFirst Velora Edition: June 2026\nPublished by Velora Press, Eldoria City\n\nPrinted in the United Kingdom", 
         180, 220, {
         style: { fontFamily: "Cormorant Garamond", fontSize: 9, textAlign: "center", lineHeight: 1.5, color: "#555555" }
       })

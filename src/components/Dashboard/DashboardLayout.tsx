@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useStudio } from "@/context/StudioContext";
+import { WORKSPACE_THEMES } from "@/constants/themes";
 import { BookDocument } from "@/types/editor";
 import { generateMockBook, createTextElement } from "@/constants/mockBook";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,8 +47,89 @@ import {
   X,
   FileUp,
   ChevronUp,
-  Edit2
+  Edit2,
+  Layers,
+  GitCommit,
+  History,
+  Check
 } from "lucide-react";
+
+interface DashboardSelectOption {
+  value: string;
+  label: string;
+}
+
+interface DashboardSelectProps {
+  options: DashboardSelectOption[];
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
+  buttonClassName?: string;
+}
+
+const DashboardSelect: React.FC<DashboardSelectProps> = ({ options, value, onChange, className = "", buttonClassName = "px-3 py-1.5 text-[11px] rounded-lg" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const selected = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] hover:bg-black/[0.02] dark:hover:bg-white/[0.04] text-neutral-700 dark:text-neutral-350 transition-all font-poppins cursor-pointer ${buttonClassName}`}
+      >
+        <span className="truncate">{selected?.label}</span>
+        <ChevronDown size={12} className={`text-neutral-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.1 }}
+            className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl bg-white/98 dark:bg-[#0E131F]/98 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl p-1 scrollbar-thin text-left"
+          >
+            {options.map((opt) => {
+              const isSel = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-[11px] transition-colors cursor-pointer font-poppins ${
+                    isSel
+                      ? "bg-[#D4AF37]/10 text-[#D4AF37] font-semibold"
+                      : "text-neutral-700 dark:text-neutral-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                  }`}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {isSel && <Check size={12} className="text-[#D4AF37]" />}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function DashboardLayout() {
   const {
@@ -69,7 +151,17 @@ export default function DashboardLayout() {
     setWritingGoals,
     setDocument,
     setActivePage,
-    workspaceTheme
+    workspaceTheme,
+    workspaceThemeId,
+    setWorkspaceThemeId,
+    glassIntensity,
+    setGlassIntensity,
+    interfaceDensity,
+    setInterfaceDensity,
+    animationSpeed,
+    setAnimationSpeed,
+    reducedMotion,
+    setReducedMotion
   } = useStudio();
 
   const isDark = workspaceTheme.isDark;
@@ -88,6 +180,7 @@ export default function DashboardLayout() {
   const [libraryView, setLibraryView] = useState<"grid" | "list">("grid");
   const [librarySearch, setLibrarySearch] = useState("");
   const [librarySort, setLibrarySort] = useState("recent");
+  const [showContinueMore, setShowContinueMore] = useState(false);
   
   // Workspace (Author Notebook) state
   const [notebookTab, setNotebookTab] = useState<"all" | "note" | "character" | "world" | "location" | "research" | "timeline">("all");
@@ -96,6 +189,45 @@ export default function DashboardLayout() {
   const [noteContent, setNoteContent] = useState("");
   const [noteType, setNoteType] = useState<"note" | "character" | "world" | "location" | "research" | "timeline">("note");
   const [noteTags, setNoteTags] = useState("");
+
+  const bookshelfRef = useRef<HTMLDivElement>(null);
+  const scrollBookshelf = (direction: "left" | "right") => {
+    if (bookshelfRef.current) {
+      const scrollAmount = 320;
+      bookshelfRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth"
+      });
+    }
+  };
+
+  // Book details sub-tab state
+  const [bookDetailsTab, setBookDetailsTab] = useState<"overview" | "chapters" | "characters" | "world" | "timeline" | "notes" | "export" | "history">("overview");
+
+  // Outlines state for characters, world concepts, and timelines
+  const [characters, setCharacters] = useState<Record<string, Array<{ id: string, name: string, role: string, description: string }>>>({
+    "the-lost-kingdom": [
+      { id: "char-1", name: "Aurelia Vance", role: "Protagonist", description: "A young, brilliant scholar of ancient histories and astronomical alignments." },
+      { id: "char-2", name: "Lord Kaelen", role: "Deuteragonist", description: "Guardian of the Silver Gate citadel, harboring a hidden lineage." },
+      { id: "char-3", name: "The Shadow Weaver", role: "Antagonist", description: "A dark phantom sorcerer seeking the portal stone to trigger the eclipse." }
+    ]
+  });
+
+  const [worldConcepts, setWorldConcepts] = useState<Record<string, Array<{ id: string, title: string, category: string, details: string }>>>({
+    "the-lost-kingdom": [
+      { id: "world-1", title: "The Obsidian Cliffs", category: "Location", details: "A towering wall of glass-like stone, containing hidden portals." },
+      { id: "world-2", title: "Silver Gate Portal", category: "Artifact", details: "An ancient portal that connects the mortal realm to the astral sky." },
+      { id: "world-3", title: "The Dual Suns Alignment", category: "Cosmology", details: "A rare eclipse event occurring once every thousand years." }
+    ]
+  });
+
+  const [timelineNodes, setTimelineNodes] = useState<Record<string, Array<{ id: string, period: string, event: string, description: string }>>>({
+    "the-lost-kingdom": [
+      { id: "time-1", period: "Act I - The Discovery", event: "Finding the Runic Scroll", description: "Aurelia uncovers an ancient parchment detailing the portal stones." },
+      { id: "time-2", period: "Act II - The Pursuit", event: "Citadel Siege", description: "The Shadow Weaver attacks, forcing Aurelia and Kaelen to flee." },
+      { id: "time-3", period: "Act III - The Confrontation", event: "Alignment Battle", description: "At the Silver Gate, Aurelia locks the portal as the dual suns eclipse." }
+    ]
+  });
 
   // Checklist state for new user
   const [checklist, setChecklist] = useState([
@@ -306,7 +438,7 @@ export default function DashboardLayout() {
 
   // UI styling helpers
   const glassStyle = isDark
-    ? "bg-white/[0.02] dark:bg-[#0E131F]/40 backdrop-blur-2xl border border-white/[0.07] shadow-xl"
+    ? "bg-white/[0.02] dark:bg-[#121824]/85 backdrop-blur-2xl border border-white/[0.09] shadow-2xl"
     : "bg-white/65 backdrop-blur-2xl border border-black/[0.04] shadow-sm";
 
   const cardHover = "transition-all duration-300 hover:shadow-lg hover:border-black/10 dark:hover:border-white/15 hover:-translate-y-0.5";
@@ -346,15 +478,15 @@ export default function DashboardLayout() {
     const getCoverGradient = (coverStyle?: string) => {
       switch (coverStyle?.toLowerCase()) {
         case "fantasy":
-          return "bg-gradient-to-br from-[#123023] via-[#0E2018] to-[#122A1E]";
+          return "linear-gradient(135deg, #1e3a2b 0%, #0d1e16 100%)";
         case "romance":
-          return "bg-gradient-to-br from-[#0B132B] via-[#080F21] to-[#15233C]";
+          return "linear-gradient(135deg, #1e1b4b 0%, #0f0b29 100%)";
         case "sci-fi":
-          return "bg-gradient-to-br from-[#EBE3D5] via-[#DECDB6] to-[#C4AF98]";
+          return "linear-gradient(135deg, #f5f5f4 0%, #d6d3d1 100%)";
         case "classic":
-          return "bg-gradient-to-br from-[#3C1642] via-[#2A0E2F] to-[#1E0921]";
+          return "linear-gradient(135deg, #581c2e 0%, #300e19 100%)";
         default:
-          return "bg-gradient-to-br from-[#FAF6EE] via-[#EAE1D4] to-[#C8B89C]";
+          return "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)";
       }
     };
 
@@ -366,66 +498,83 @@ export default function DashboardLayout() {
 
     const getSpineColor = (coverStyle?: string) => {
       switch (coverStyle?.toLowerCase()) {
-        case "fantasy": return "bg-[#0A1611] border-r border-white/5";
-        case "romance": return "bg-[#050B17] border-r border-white/5";
-        case "sci-fi": return "bg-[#AA9680] border-r border-black/5";
-        case "classic": return "bg-[#1B091E] border-r border-white/5";
-        default: return "bg-[#AE9D80] border-r border-black/5";
+        case "fantasy": return "linear-gradient(to right, #0e2015, #143020 80%, #0e2015 100%)";
+        case "romance": return "linear-gradient(to right, #090620, #130f36 80%, #090620 100%)";
+        case "sci-fi": return "linear-gradient(to right, #a8a29e, #d6d3d1 80%, #a8a29e 100%)";
+        case "classic": return "linear-gradient(to right, #240a13, #431223 80%, #240a13 100%)";
+        default: return "linear-gradient(to right, #d1d5db, #f3f4f6 80%, #d1d5db 100%)";
       }
+    };
+
+    const getAccentBorder = (coverStyle?: string) => {
+      return coverStyle?.toLowerCase() === "sci-fi" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.08)";
     };
 
     return (
       <div 
         onClick={onClick} 
         onDoubleClick={onDoubleClick} 
-        className="flex flex-col items-center cursor-pointer select-none group"
+        className="flex flex-col items-center cursor-pointer select-none shrink-0 group py-2 px-1"
       >
         {/* 3D Book Cover Container */}
         <div 
-          className="relative w-[100px] h-[142px] transition-all duration-300 transform group-hover:-translate-y-3 group-hover:rotate-[-2deg] group-hover:shadow-[0_16px_32px_rgba(0,0,0,0.18)] shadow-md rounded-[3px_5px_5px_3px] overflow-hidden flex border border-black/10 dark:border-white/5" 
-          style={{ perspective: "600px", transformStyle: "preserve-3d" }}
+          className="relative w-[110px] h-[156px] transition-all duration-500 ease-out transform-gpu group-hover:-translate-y-4 group-hover:rotate-y-[12deg] group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.35),0_0_15px_var(--accent-glow-strong)] shadow-[0_12px_24px_rgba(0,0,0,0.22)] rounded-[4px_6px_6px_4px] flex border border-black/10 dark:border-white/5 active:scale-95" 
+          style={{ 
+            perspective: "800px", 
+            transformStyle: "preserve-3d",
+            background: getCoverGradient(book.coverImage)
+          }}
         >
-          {/* Book Spine crease */}
-          <div className={`w-[8px] h-full ${getSpineColor(book.coverImage)}`} />
-          
-          {/* Page stack depth effect on right edge */}
-          <div className="absolute right-0 top-1 bottom-1 w-[4px] bg-white border-l border-neutral-300/40 rounded-r-sm shadow-inner" />
-          
-          {/* Front Cover Face */}
-          <div className={`flex-1 h-full p-2 flex flex-col justify-between relative border-l border-white/10 ${getCoverGradient(book.coverImage)}`}>
-            {/* Soft inner glow decoration */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.04)_0%,transparent_70%)] pointer-events-none" />
-            
-            {/* Custom SVG emblems based on genre to mimic illustration details */}
-            {book.coverImage?.toLowerCase() === "romance" && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                <svg viewBox="0 0 100 100" className="w-10 h-10 text-white fill-none stroke-current" strokeWidth="2">
-                  <circle cx="50" cy="50" r="30" />
-                  <path d="M50 20 L50 80 M20 50 L80 50" />
-                </svg>
-              </div>
-            )}
-            
-            {book.coverImage?.toLowerCase() === "sci-fi" && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                <svg viewBox="0 0 100 100" className="w-10 h-10 text-neutral-800 fill-none stroke-current" strokeWidth="2">
-                  <polygon points="50,15 90,80 10,80" />
-                </svg>
-              </div>
-            )}
+          {/* Cover gloss overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/10 pointer-events-none rounded-[4px_6px_6px_4px] mix-blend-overlay" />
 
-            <div className="flex flex-col items-center text-center mt-2 relative z-10">
-              <span className={`text-[6.5px] uppercase tracking-wider opacity-60 font-bold font-poppins ${getTextColor(book.coverImage)}`}>
+          {/* Book Spine (Realistic 3D spine) */}
+          <div 
+            className="w-[10px] h-full shrink-0 relative rounded-l-[4px]"
+            style={{ 
+              background: getSpineColor(book.coverImage),
+              borderRight: `1px solid ${getAccentBorder(book.coverImage)}`,
+              boxShadow: "inset 1px 0 0 rgba(255,255,255,0.1), inset -1px 0 3px rgba(0,0,0,0.4)"
+            }}
+          >
+            {/* Embossed gold foil spine ridges */}
+            <div className="absolute top-4 left-0.5 right-0.5 h-[1.5px] bg-[#D4AF37]/50 shadow-[0_0.5px_1px_rgba(0,0,0,0.3)]" />
+            <div className="absolute bottom-4 left-0.5 right-0.5 h-[1.5px] bg-[#D4AF37]/50 shadow-[0_0.5px_1px_rgba(0,0,0,0.3)]" />
+          </div>
+          
+          {/* 3D Thickness Paper Edges stack depth effect on right edge */}
+          <div 
+            className="absolute right-0 top-1 bottom-1 w-[6px] bg-gradient-to-r from-amber-50/90 to-neutral-300 dark:from-neutral-800 dark:to-neutral-700 rounded-r-xs shadow-inner border-y border-r border-black/5" 
+            style={{
+              transform: "translateZ(-2px)",
+              backgroundImage: "repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(0,0,0,0.06) 1px, rgba(0,0,0,0.06) 2px)"
+            }}
+          />
+          
+          {/* Front Cover Face Content */}
+          <div className="flex-1 h-full p-2.5 flex flex-col justify-between relative border-l border-white/5">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05)_0%,transparent_70%)] pointer-events-none" />
+            
+            {/* Cover emblem decoration */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.06] dark:opacity-[0.09]">
+              <svg viewBox="0 0 100 100" className="w-12 h-12 text-[#D4AF37] fill-none stroke-current" strokeWidth="1.5">
+                <circle cx="50" cy="50" r="35" />
+                <polygon points="50,15 80,75 20,75" />
+              </svg>
+            </div>
+
+            <div className="flex flex-col items-center text-center mt-1 relative z-10">
+              <span className={`text-[6.5px] uppercase tracking-wider font-extrabold font-poppins ${getTextColor(book.coverImage)}`}>
                 {book.genre || "Novel"}
               </span>
-              <span className={`text-[8.5px] font-bold font-cinzel leading-tight mt-1 line-clamp-3 ${getTextColor(book.coverImage)}`}>
+              <span className={`text-[9.5px] font-bold font-cinzel leading-tight mt-1 line-clamp-3 uppercase tracking-wide drop-shadow-sm ${getTextColor(book.coverImage)}`}>
                 {book.title}
               </span>
             </div>
             
-            <div className="flex flex-col items-center mb-1 relative z-10">
-              <div className="w-5 h-[0.5px] bg-[#D4AF37] opacity-60 mb-1" />
-              <span className={`text-[5.5px] tracking-wide opacity-75 font-mono ${getTextColor(book.coverImage)}`}>
+            <div className="flex flex-col items-center mb-0.5 relative z-10">
+              <div className="w-4 h-[1px] bg-[#D4AF37]/50 mb-1" />
+              <span className={`text-[6px] tracking-wider font-mono opacity-80 ${getTextColor(book.coverImage)}`}>
                 {book.wordCount?.toLocaleString() || "0"} W
               </span>
             </div>
@@ -434,16 +583,16 @@ export default function DashboardLayout() {
 
         {/* Labels below */}
         <div className="text-center mt-3 max-w-[110px] font-poppins">
-          <h4 className="text-[11px] font-bold text-neutral-800 dark:text-neutral-100 truncate w-full">
+          <h4 className="text-[11px] font-bold text-neutral-800 dark:text-neutral-100 truncate w-full group-hover:text-[#D4AF37] transition-colors">
             {book.title}
           </h4>
           <div className="flex items-center justify-center gap-1 mt-1">
-            <span className={`text-[8.5px] px-2 py-0.5 rounded-full font-bold leading-none ${
+            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
               book.status === "Completed" ? "bg-[#E8F5E9] text-[#2E7D32] dark:bg-[#1B3A24]/60 dark:text-[#81C784]" :
               book.status === "Draft" ? "bg-[#FFF8E1] text-[#F57F17] dark:bg-[#3E2723]/60 dark:text-[#FFE082]" :
-              "bg-[#E8F5E9] text-[#2E7D32] dark:bg-[#1B3A24]/60 dark:text-[#81C784]"
+              "bg-[#E3F2FD] text-[#1565C0] dark:bg-[#0D3C61]/60 dark:text-[#90CAF9]"
             }`}>
-              {book.status || "In Progress"}
+              {book.status || "Draft"}
             </span>
           </div>
           <span className="text-[8.5px] text-neutral-400 dark:text-neutral-500 block mt-1 font-medium">
@@ -456,13 +605,13 @@ export default function DashboardLayout() {
 
   return (
     <div className={`h-screen w-screen flex overflow-hidden theme-transition ${
-      isDark ? "bg-[#0B0F15] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"
+      isDark ? "bg-[#040609] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"
     }`}>
       {/* ============================================================== */}
       {/* 1. GLOBAL LEFT SIDEBAR NAVIGATION */}
       {/* ============================================================== */}
-      <aside className={`w-[260px] h-full flex flex-col justify-between p-5 border-r border-black/[0.04] dark:border-white/[0.06] select-none shrink-0 ${
-        isDark ? "bg-[#090D13]" : "bg-white/40 backdrop-blur-2xl"
+      <aside className={`w-[260px] h-full flex flex-col justify-between p-5 border-r border-black/[0.04] dark:border-white/[0.08] select-none shrink-0 ${
+        isDark ? "bg-[#070b13]" : "bg-white/40 backdrop-blur-2xl"
       }`}>
         <div className="flex flex-col gap-6">
           {/* Logo Brand Header */}
@@ -472,7 +621,7 @@ export default function DashboardLayout() {
             </div>
             <div className="flex flex-col">
               <span className="text-[14px] font-bold font-poppins tracking-wider leading-none text-neutral-900 dark:text-white uppercase">
-                Lumora
+                Velora
               </span>
               <span className="text-[8.5px] uppercase tracking-widest text-[#D4AF37] dark:text-[#E8C35A] font-medium leading-none mt-1">
                 Book Studio
@@ -527,8 +676,8 @@ export default function DashboardLayout() {
         {/* ============================================================== */}
         {/* TOP FIXED APP HEADER */}
         {/* ============================================================== */}
-        <header className={`h-16 w-full flex items-center justify-between px-8 border-b border-black/[0.03] dark:border-white/[0.05] z-40 relative select-none shrink-0 ${
-          isDark ? "bg-[#0B0F15]/90 backdrop-blur-2xl" : "bg-[#FAF6EE]/90 backdrop-blur-2xl"
+        <header className={`h-16 w-full flex items-center justify-between px-8 border-b border-black/[0.03] dark:border-white/[0.07] z-40 relative select-none shrink-0 ${
+          isDark ? "bg-[#040609]/90 backdrop-blur-2xl" : "bg-[#FAF6EE]/90 backdrop-blur-2xl"
         }`}>
           {/* Search bar widget */}
           <div className="relative w-80">
@@ -772,20 +921,36 @@ export default function DashboardLayout() {
                           <div className="lg:col-span-2">
                             {/* Continue Writing primary Card */}
                             <div className={`p-5 rounded-2xl flex gap-5 items-stretch relative overflow-hidden ${glassStyle}`}>
-                              {/* Book cover preview mockup */}
+                              {/* Hardcover book cover 3D rendering mockup */}
                               <div 
                                 onClick={() => handleOpenStudio(activeBook)}
-                                className="w-[100px] h-[142px] shadow-lg rounded-[2px_4px_4px_2px] overflow-hidden flex cursor-pointer shrink-0 border border-neutral-700/10 hover:scale-[1.03] transition-transform relative group"
+                                className="w-[105px] h-[146px] shadow-[0_15px_30px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.6)] rounded-[3px_6px_6px_3px] overflow-hidden flex cursor-pointer shrink-0 border border-neutral-700/10 hover:scale-[1.03] hover:rotate-1 transition-all duration-300 relative group"
+                                style={{
+                                  background: `linear-gradient(105deg, #1e293b 0%, #0f172a 100%)`,
+                                }}
                               >
-                                <div className="w-[8px] h-full bg-[#121E16] z-10" />
-                                {/* Cover Art content */}
-                                <div className="flex-1 h-full p-2 flex flex-col justify-between bg-gradient-to-br from-[#123023] via-[#0E2018] to-[#122A1E] relative">
-                                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06)_0%,transparent_70%)] pointer-events-none" />
-                                  <span className="text-[6.5px] text-[#D4AF37]/70 text-center uppercase tracking-wider font-bold font-poppins">Fantasy</span>
-                                  <span className="text-[9.5px] font-bold font-cinzel text-[#FAF5EB] leading-tight text-center mt-3 line-clamp-3">THE LOST KINGDOM</span>
+                                {/* Spine crease */}
+                                <div className="w-[8px] h-full bg-gradient-to-r from-black/35 via-black/10 to-transparent z-10 border-r border-white/5" />
+                                
+                                {/* Hardcover page thickness reflection */}
+                                <div className="absolute right-0 top-1 bottom-1 w-1.5 bg-gradient-to-r from-neutral-200 to-neutral-400 dark:from-neutral-700 dark:to-neutral-600 rounded-r-xs shadow-inner" />
+                                
+                                {/* Cover Content */}
+                                <div className="flex-1 h-full p-2.5 flex flex-col justify-between relative bg-black/10">
+                                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.04)_0%,transparent_70%)] pointer-events-none" />
+                                  <span className="text-[7.5px] text-[#D4AF37] text-center uppercase tracking-wider font-extrabold font-poppins">
+                                    {activeBook.genre || "Novel"}
+                                  </span>
+                                  <div className="my-auto">
+                                    <h4 className="text-[9.5px] font-bold font-cinzel text-amber-50 leading-tight text-center line-clamp-3 uppercase tracking-wide">
+                                      {activeBook.title}
+                                    </h4>
+                                    <div className="w-5 h-[0.5px] bg-[#D4AF37]/50 mx-auto mt-1" />
+                                  </div>
                                   <div className="flex flex-col items-center">
-                                    <div className="w-4 h-[0.5px] bg-[#D4AF37] opacity-60 mb-0.5" />
-                                    <span className="text-[5.5px] text-[#FAF5EB]/80 font-mono tracking-wider">24,530 W</span>
+                                    <span className="text-[5.5px] text-neutral-300 font-mono tracking-wider">
+                                      {activeBook.wordCount?.toLocaleString() || "0"} W
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -796,19 +961,80 @@ export default function DashboardLayout() {
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] font-poppins">
                                       Continue Writing
                                     </span>
-                                    <button className="p-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer">
-                                      <MoreHorizontal size={14} />
-                                    </button>
+                                    <div className="relative">
+                                      <button 
+                                        onClick={() => setShowContinueMore(!showContinueMore)}
+                                        className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
+                                      >
+                                        <MoreHorizontal size={14} />
+                                      </button>
+
+                                      {/* Dropdown Options */}
+                                      {showContinueMore && (
+                                        <>
+                                          <div className="fixed inset-0 z-20" onClick={() => setShowContinueMore(false)} />
+                                          <div className="absolute right-0 mt-1 w-36 rounded-xl border border-black/5 dark:border-white/10 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md shadow-lg py-1 z-30 select-none">
+                                            <button 
+                                              onClick={() => {
+                                                setShowContinueMore(false);
+                                                const newTitle = prompt("Enter new title:", activeBook.title);
+                                                if (newTitle) {
+                                                  setBooks(prev => prev.map(b => b.id === activeBook.id ? { ...b, title: newTitle } : b));
+                                                }
+                                              }}
+                                              className="w-full text-left px-3.5 py-1.5 text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                              <Edit2 size={12} />
+                                              Rename Book
+                                            </button>
+                                            <button 
+                                              onClick={() => {
+                                                setShowContinueMore(false);
+                                                handleDuplicateBook(activeBook);
+                                              }}
+                                              className="w-full text-left px-3.5 py-1.5 text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                              <Copy size={12} />
+                                              Duplicate Book
+                                            </button>
+                                            <button 
+                                              onClick={() => {
+                                                setShowContinueMore(false);
+                                                if (confirm("Are you sure you want to delete this book?")) {
+                                                  handleDeleteBook(activeBook.id);
+                                                }
+                                              }}
+                                              className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-500/5 dark:hover:bg-red-500/10 flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                              <Trash2 size={12} />
+                                              Delete Book
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
-                                  <h2 className="text-[17px] font-bold font-poppins text-neutral-900 dark:text-white mt-1">
+                                  
+                                  <h2 className="text-[17px] font-bold font-poppins text-neutral-900 dark:text-white mt-1 leading-tight">
                                     {activeBook.title}
                                   </h2>
                                   <p className="text-[10.5px] text-neutral-400 font-medium">
                                     {activeBook.genre} • {activeBook.chapterCount} Chapters
                                   </p>
+
+                                  {/* Current Chapter Indicator */}
+                                  <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-black/[0.015] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 inline-flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
+                                    <span className="text-[10px] font-semibold text-neutral-600 dark:text-neutral-300 font-poppins">
+                                      Current: {activeBook.pages?.find(p => p.chapterNumber !== undefined && p.chapterTitle) 
+                                        ? `Chapter ${activeBook.pages.find(p => p.chapterNumber !== undefined && p.chapterTitle)?.chapterNumber}: ${activeBook.pages.find(p => p.chapterNumber !== undefined && p.chapterTitle)?.chapterTitle}`
+                                        : "Chapter 1: The Gathering Storm"
+                                      }
+                                    </span>
+                                  </div>
                                   
-                                  <div className="mt-3.5 flex items-center justify-between gap-3 font-poppins">
-                                    <span className="text-[11.5px] font-semibold text-neutral-800 dark:text-neutral-200">
+                                  <div className="mt-3 flex items-center justify-between gap-3 font-poppins">
+                                    <span className="text-[11.5px] font-semibold text-neutral-850 dark:text-neutral-200">
                                       {activeBook.wordCount?.toLocaleString() || "0"} / {activeBook.targetWordCount?.toLocaleString() || "80,000"} words
                                     </span>
                                     <span className="text-[11px] font-bold text-[#D4AF37] bg-[#D4AF37]/10 px-1.5 py-0.5 rounded-md">
@@ -826,7 +1052,7 @@ export default function DashboardLayout() {
                                 <div className="flex items-center justify-between pt-2 border-t border-black/[0.03] dark:border-white/[0.04]">
                                   <span className="text-[9.5px] text-neutral-400 font-medium flex items-center gap-1 font-poppins">
                                     <Clock size={11} className="text-neutral-300" />
-                                    Last edited 1 hour ago
+                                    Last edited {activeBook.lastEdited || "1 hour ago"}
                                   </span>
                                   <div className="flex items-center gap-2">
                                     <button 
@@ -834,15 +1060,21 @@ export default function DashboardLayout() {
                                         setSelectedBookId(activeBook.id);
                                         setActiveView("book-details");
                                       }}
-                                      className="px-2.5 py-1 border border-black/5 dark:border-white/10 hover:bg-black/[0.01] dark:hover:bg-white/[0.02] text-neutral-600 dark:text-neutral-400 font-bold rounded-lg text-[10px] cursor-pointer font-poppins transition-colors"
+                                      className="px-2.5 py-1 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] text-neutral-600 dark:text-neutral-400 font-bold rounded-lg text-[10px] cursor-pointer font-poppins transition-colors"
                                     >
                                       View Details
                                     </button>
                                     <button 
                                       onClick={() => handleOpenStudio(activeBook)}
+                                      className="px-2.5 py-1 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] text-neutral-600 dark:text-neutral-400 font-bold rounded-lg text-[10px] cursor-pointer font-poppins transition-colors"
+                                    >
+                                      Open Studio
+                                    </button>
+                                    <button 
+                                      onClick={() => handleOpenStudio(activeBook)}
                                       className="px-3.5 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-xs font-poppins transition-all"
                                     >
-                                      Open in Studio
+                                      Resume Writing
                                       <ArrowRight size={11} />
                                     </button>
                                   </div>
@@ -922,56 +1154,82 @@ export default function DashboardLayout() {
                         </div>
 
                         {/* Row 3: Your Bookshelf */}
-                        <div className={`p-5 rounded-2xl relative ${glassStyle}`}>
-                          <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-sm font-bold font-poppins text-neutral-900 dark:text-white uppercase tracking-wider">
-                              Your Bookshelf
-                            </h3>
-                            <button 
-                              onClick={() => {
-                                setLibraryFilter("All");
-                                setActiveView("library");
-                              }}
-                              className="text-[11.5px] font-bold text-[#D4AF37] hover:underline flex items-center gap-0.5 font-poppins"
-                            >
-                              View all
-                              <ChevronRight size={12} />
-                            </button>
+                        <div className={`p-5 rounded-2xl relative overflow-visible ${glassStyle}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h3 className="text-sm font-bold font-poppins text-neutral-900 dark:text-white uppercase tracking-wider">
+                                Your Bookshelf
+                              </h3>
+                              <p className="text-[10px] text-neutral-400 font-poppins mt-0.5">
+                                Click to view details, double-click to write.
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => {
+                                  setLibraryFilter("All");
+                                  setActiveView("library");
+                                }}
+                                className="text-[11.5px] font-bold text-[#D4AF37] hover:underline flex items-center gap-0.5 font-poppins cursor-pointer"
+                              >
+                                View all
+                                <ChevronRight size={12} />
+                              </button>
+                              
+                              {/* Left & Right custom buttons */}
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => scrollBookshelf("left")}
+                                  className="w-7 h-7 rounded-lg border border-black/5 dark:border-white/10 bg-white/50 dark:bg-black/20 hover:bg-black/5 dark:hover:bg-white/5 text-neutral-600 dark:text-neutral-350 flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                                >
+                                  <ChevronLeft size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => scrollBookshelf("right")}
+                                  className="w-7 h-7 rounded-lg border border-black/5 dark:border-white/10 bg-white/50 dark:bg-black/20 hover:bg-black/5 dark:hover:bg-white/5 text-neutral-600 dark:text-neutral-350 flex items-center justify-center cursor-pointer transition-colors shadow-xs"
+                                >
+                                  <ChevronRight size={14} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
 
                           {/* 3D Shelf Books list */}
-                          <div className="relative pt-2 pb-6">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-y-8 gap-x-5 relative z-10">
-                              {books.slice(0, 4).map(b => (
-                                <BookshelfBook 
-                                  key={b.id} 
-                                  book={b} 
-                                  onClick={() => {
-                                    setSelectedBookId(b.id);
-                                    setActiveView("book-details");
-                                  }}
-                                  onDoubleClick={() => handleOpenStudio(b)}
-                                />
+                          <div className="relative pt-1 pb-4">
+                            <div 
+                              ref={bookshelfRef}
+                              className="flex gap-4 overflow-x-auto relative z-10 no-scrollbar snap-x scroll-smooth pb-2"
+                              style={{ scrollbarWidth: "none" }}
+                            >
+                              {books.map(b => (
+                                <div key={b.id} className="snap-start">
+                                  <BookshelfBook 
+                                    book={b} 
+                                    onClick={() => {
+                                      setSelectedBookId(b.id);
+                                      setActiveView("book-details");
+                                    }}
+                                    onDoubleClick={() => handleOpenStudio(b)}
+                                  />
+                                </div>
                               ))}
                               {/* Create book placeholder */}
-                              <div 
-                                onClick={() => {
-                                  setNewBookTitle("");
-                                  setOpenNewBookModal(true);
-                                }}
-                                className="flex flex-col items-center justify-center cursor-pointer group"
-                              >
-                                <div className="w-[100px] h-[142px] border-2 border-dashed border-black/10 dark:border-white/10 group-hover:border-[#D4AF37] group-hover:bg-[#D4AF37]/5 rounded-[3px_5px_5px_3px] transition-all flex flex-col items-center justify-center gap-2 bg-white/20 dark:bg-black/10">
+                              <div className="snap-start shrink-0 flex flex-col items-center justify-center py-2 px-1">
+                                <div 
+                                  onClick={() => {
+                                    setNewBookTitle("");
+                                    setOpenNewBookModal(true);
+                                  }}
+                                  className="w-[110px] h-[156px] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-[4px_6px_6px_4px] transition-all flex flex-col items-center justify-center gap-2 bg-white/20 dark:bg-black/10 cursor-pointer group active:scale-95"
+                                >
                                   <Plus size={18} className="text-neutral-400 group-hover:text-[#D4AF37] group-hover:scale-110 transition-transform" />
-                                  <span className="text-[10px] text-neutral-400 group-hover:text-[#D4AF37] font-medium font-poppins">New Book</span>
+                                  <span className="text-[10px] text-neutral-400 group-hover:text-[#D4AF37] font-semibold font-poppins">New Book</span>
                                 </div>
-                                <span className="text-[11px] font-bold text-neutral-800 dark:text-neutral-100 mt-3 opacity-0 group-hover:opacity-100 transition-opacity font-poppins">
-                                  Start fresh
-                                </span>
+                                <div className="h-[27px] mt-3" /> {/* Alignment placeholder spacer */}
                               </div>
                             </div>
                             {/* Shelf wood ledge overlay */}
-                            <div className="absolute -bottom-3 inset-x-0 h-4 bg-gradient-to-b from-[#FAF5EB] via-[#E2D8C9] to-[#D5C9B7] dark:from-[#161D26] dark:via-[#11161D] dark:to-[#0A0D12] border-t border-black/5 dark:border-white/5 rounded-md shadow-[0_6px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]" />
+                            <div className="absolute bottom-5 inset-x-0 h-4 bg-gradient-to-b from-[#FAF5EB] via-[#E2D8C9] to-[#D5C9B7] dark:from-[#161D26] dark:via-[#11161D] dark:to-[#0A0D12] border-t border-black/5 dark:border-white/5 rounded-md shadow-[0_6px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] pointer-events-none" />
                           </div>
                         </div>
 
@@ -1253,7 +1511,7 @@ export default function DashboardLayout() {
 
                           <div className="space-y-4 flex-1">
                             <h1 className="text-2xl font-bold font-poppins text-neutral-900 dark:text-white leading-tight">
-                              Welcome to Lumora, New Writer! ✨
+                              Welcome to Velora, New Writer! ✨
                             </h1>
                             <p className="text-[13px] text-neutral-500 leading-relaxed">
                               Your story begins here. Let's turn your ideas into something unforgettable. Start a blank book or explore our beautiful templates.
@@ -1410,7 +1668,7 @@ export default function DashboardLayout() {
                           
                           <div className="space-y-3">
                             {[
-                              { title: "Getting Started Guide", desc: "Learn the basics of Lumora", icon: <BookOpen size={13} /> },
+                              { title: "Getting Started Guide", desc: "Learn the basics of Velora", icon: <BookOpen size={13} /> },
                               { title: "Writing Best Practices", desc: "Tips to improve your writing", icon: <Edit2 size={13} /> },
                               { title: "Keyboard Shortcuts", desc: "Work faster in the studio", icon: <Database size={13} /> }
                             ].map((res) => (
@@ -1462,18 +1720,17 @@ export default function DashboardLayout() {
                       </div>
 
                       {/* Sort Dropdown */}
-                      <div className="relative">
-                        <select 
-                          value={librarySort}
-                          onChange={(e) => setLibrarySort(e.target.value)}
-                          className="pl-3 pr-8 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none font-poppins text-neutral-700 dark:text-neutral-300 appearance-none cursor-pointer"
-                        >
-                          <option value="recent">Recent Edit</option>
-                          <option value="alphabetical">Title A-Z</option>
-                          <option value="words">Word Count</option>
-                        </select>
-                        <ChevronDown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
-                      </div>
+                      <DashboardSelect 
+                        value={librarySort}
+                        onChange={setLibrarySort}
+                        options={[
+                          { value: "recent", label: "Recent Edit" },
+                          { value: "alphabetical", label: "Title A-Z" },
+                          { value: "words", label: "Word Count" }
+                        ]}
+                        className="w-28"
+                        buttonClassName="pl-3 pr-8 py-1.5 text-[11px] rounded-lg"
+                      />
 
                       {/* View toggles */}
                       <div className="flex items-center border border-black/5 dark:border-white/5 rounded-lg overflow-hidden bg-black/[0.01] dark:bg-white/[0.02]">
@@ -1648,21 +1905,20 @@ export default function DashboardLayout() {
                             className="w-full px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none focus:border-[#D4AF37]"
                           />
                         </div>
-
                         <div className="flex flex-col">
                           <label className="text-[9.5px] uppercase tracking-wider text-neutral-400 mb-1">Type</label>
-                          <select
+                          <DashboardSelect
                             value={noteType}
-                            onChange={(e) => setNoteType(e.target.value as any)}
-                            className="w-full px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none font-poppins text-neutral-700 dark:text-neutral-300"
-                          >
-                            <option value="note">Scratch Note</option>
-                            <option value="character">Character Outline</option>
-                            <option value="world">Worldbuilding Rule</option>
-                            <option value="location">Location Guide</option>
-                            <option value="research">Research Material</option>
-                            <option value="timeline">Book Timeline</option>
-                          </select>
+                            onChange={(val) => setNoteType(val as any)}
+                            options={[
+                              { value: "note", label: "Scratch Note" },
+                              { value: "character", label: "Character Outline" },
+                              { value: "world", label: "Worldbuilding Rule" },
+                              { value: "location", label: "Location Guide" },
+                              { value: "research", label: "Research Material" },
+                              { value: "timeline", label: "Book Timeline" }
+                            ]}
+                          />
                         </div>
 
                         <div className="flex flex-col">
@@ -1819,9 +2075,9 @@ export default function DashboardLayout() {
               {activeView === "community" && (
                 <div className={`p-8 rounded-2xl text-center max-w-lg mx-auto ${glassStyle}`}>
                   <Globe size={48} className="mx-auto text-[#D4AF37] mb-4 animate-spin" style={{ animationDuration: "12s" }} />
-                  <h1 className="text-xl font-bold font-poppins text-neutral-900 dark:text-white">Lumora Writing Community</h1>
+                  <h1 className="text-xl font-bold font-poppins text-neutral-900 dark:text-white">Velora Writing Community</h1>
                   <p className="text-[12px] text-neutral-500 mt-2 leading-relaxed">
-                    Connect with featured authors, join weekly writing challenges, share drafts, and read stories created inside Lumora. This feature is in beta and will launch in the next version.
+                    Connect with featured authors, join weekly writing challenges, share drafts, and read stories created inside Velora. This feature is in beta and will launch in the next version.
                   </p>
                   <div className="mt-6 flex flex-col gap-2">
                     <div className="p-3.5 rounded-xl bg-black/[0.01] dark:bg-white/[0.02] text-left border border-black/5 dark:border-white/5">
@@ -1965,7 +2221,7 @@ export default function DashboardLayout() {
                       Discover Inspiration
                     </h1>
                     <p className="text-[11.5px] text-neutral-500 mt-0.5">
-                      Explore industry articles, layout design tips, and releases from the Lumora editorial team.
+                      Explore industry articles, layout design tips, and releases from the Velora editorial team.
                     </p>
                   </div>
 
@@ -2000,43 +2256,175 @@ export default function DashboardLayout() {
               {/* VIEW: SETTINGS & PROFILE (Basic UI) */}
               {/* ============================================================== */}
               {(activeView === "settings" || activeView === "profile") && (
-                <div className={`p-6 rounded-2xl text-left max-w-lg mx-auto ${glassStyle}`}>
+                <div className={`p-6 rounded-2xl text-left max-w-lg mx-auto ${glassStyle} mb-8`}>
                   <h1 className="text-lg font-bold font-poppins text-neutral-900 dark:text-white uppercase tracking-wider mb-4">
-                    {activeView === "profile" ? "Author Profile" : "Account Settings"}
+                    {activeView === "profile" ? "Author Profile" : "Workspace Settings"}
                   </h1>
                   
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold text-base">
-                        AV
+                  <div className="space-y-6">
+                    {/* Section 1: Account / Profile */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold text-base">
+                          AV
+                        </div>
+                        <div>
+                          <h3 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{user.name}</h3>
+                          <p className="text-[10.5px] text-neutral-500">{user.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{user.name}</h3>
-                        <p className="text-[10.5px] text-neutral-500">{user.email}</p>
+
+                      <div className="space-y-3 pt-3 border-t border-black/5 dark:border-white/5">
+                        <div className="flex flex-col">
+                          <label className="text-[9.5px] uppercase tracking-wider text-neutral-400 mb-1">Author Pen Name</label>
+                          <input
+                            type="text"
+                            value={user.name}
+                            onChange={(e) => setUser(prev => ({ ...prev, name: e.target.value }))}
+                            className="px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none focus:border-[#D4AF37]"
+                          />
+                        </div>
+
+                        <div className="flex flex-col">
+                          <label className="text-[9.5px] uppercase tracking-wider text-neutral-400 mb-1">Email Address</label>
+                          <input
+                            type="email"
+                            value={user.email}
+                            onChange={(e) => setUser(prev => ({ ...prev, email: e.target.value }))}
+                            className="px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none focus:border-[#D4AF37]"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-3 pt-4 border-t border-black/5 dark:border-white/5">
-                      <div className="flex flex-col">
-                        <label className="text-[9.5px] uppercase tracking-wider text-neutral-400 mb-1">Author Pen Name</label>
-                        <input
-                          type="text"
-                          value={user.name}
-                          onChange={(e) => setUser(prev => ({ ...prev, name: e.target.value }))}
-                          className="px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none focus:border-[#D4AF37]"
-                        />
-                      </div>
+                    {/* Section 2: Appearance & Preferences (Only shown in settings view) */}
+                    {activeView === "settings" && (
+                      <div className="space-y-4 pt-5 border-t border-black/5 dark:border-white/5">
+                        <h2 className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold font-poppins">Appearance Settings</h2>
+                        
+                        {/* Light / Dark Toggler */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                          <div>
+                            <span className="text-[12px] font-semibold text-neutral-850 dark:text-neutral-200">Workspace Mode</span>
+                            <p className="text-[9.5px] text-neutral-400">Toggle between Light mode and Dark mode</p>
+                          </div>
+                          <div className="flex bg-neutral-200/50 dark:bg-neutral-800 p-0.5 rounded-lg border border-black/5 dark:border-white/5">
+                            <button
+                              onClick={() => setWorkspaceThemeId("warm-ivory")}
+                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${!isDark ? "bg-white text-neutral-900 shadow-xs" : "text-neutral-400 hover:text-white"}`}
+                            >
+                              Light
+                            </button>
+                            <button
+                              onClick={() => setWorkspaceThemeId("midnight-gold")}
+                              className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${isDark ? "bg-neutral-950 text-white shadow-xs" : "text-neutral-500 hover:text-neutral-900"}`}
+                            >
+                              Dark
+                            </button>
+                          </div>
+                        </div>
 
-                      <div className="flex flex-col">
-                        <label className="text-[9.5px] uppercase tracking-wider text-neutral-400 mb-1">Email Address</label>
-                        <input
-                          type="email"
-                          value={user.email}
-                          onChange={(e) => setUser(prev => ({ ...prev, email: e.target.value }))}
-                          className="px-3 py-1.5 text-[11px] rounded-lg border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none focus:border-[#D4AF37]"
-                        />
+                        {/* Workspace Accent Theme Selection */}
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-semibold text-neutral-800 dark:text-neutral-200 block">Workspace Accent Preset</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            {Object.values(WORKSPACE_THEMES)
+                              .filter(wt => wt.isDark === isDark)
+                              .map(wt => {
+                                const isActive = workspaceThemeId === wt.id;
+                                return (
+                                  <button
+                                    key={wt.id}
+                                    onClick={() => setWorkspaceThemeId(wt.id)}
+                                    className={`flex items-center gap-2.5 p-2 rounded-xl border text-[11px] font-medium transition-all text-left cursor-pointer ${
+                                      isActive
+                                        ? "bg-white dark:bg-white/[0.04] border-[var(--accent-color)] text-neutral-900 dark:text-white shadow-[0_0_10px_var(--accent-glow)]"
+                                        : "bg-black/[0.01] dark:bg-white/[0.01] border-black/5 dark:border-white/[0.05] text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
+                                    }`}
+                                  >
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-full border border-black/15 flex-shrink-0"
+                                      style={{ backgroundColor: wt.accentColor }}
+                                    />
+                                    <span className="truncate">{wt.name}</span>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        </div>
+
+                        {/* Glass Intensity */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                          <div>
+                            <span className="text-[12px] font-semibold text-neutral-850 dark:text-neutral-200">Glass Intensity</span>
+                            <p className="text-[9.5px] text-neutral-400">Backdrop blur and transparency level</p>
+                          </div>
+                          <div className="flex bg-neutral-200/50 dark:bg-neutral-800 p-0.5 rounded-lg border border-black/5 dark:border-white/5">
+                            {(["low", "medium", "high"] as const).map(intensity => (
+                              <button
+                                key={intensity}
+                                onClick={() => setGlassIntensity(intensity)}
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold capitalize transition-all cursor-pointer ${glassIntensity === intensity ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs" : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"}`}
+                              >
+                                {intensity}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Interface Density */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                          <div>
+                            <span className="text-[12px] font-semibold text-neutral-850 dark:text-neutral-200">Interface Density</span>
+                            <p className="text-[9.5px] text-neutral-400">Paddings and margins layout density</p>
+                          </div>
+                          <div className="flex bg-neutral-200/50 dark:bg-neutral-800 p-0.5 rounded-lg border border-black/5 dark:border-white/5">
+                            {(["compact", "cozy", "spacious"] as const).map(density => (
+                              <button
+                                key={density}
+                                onClick={() => setInterfaceDensity(density)}
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold capitalize transition-all cursor-pointer ${interfaceDensity === density ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs" : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"}`}
+                              >
+                                {density}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Animation Speed */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                          <div>
+                            <span className="text-[12px] font-semibold text-neutral-850 dark:text-neutral-200">Animation Speed</span>
+                            <p className="text-[9.5px] text-neutral-400">Speed of UI transitions and micro-animations</p>
+                          </div>
+                          <div className="flex bg-neutral-200/50 dark:bg-neutral-800 p-0.5 rounded-lg border border-black/5 dark:border-white/5">
+                            {(["slow", "normal", "fast"] as const).map(speed => (
+                              <button
+                                key={speed}
+                                onClick={() => setAnimationSpeed(speed)}
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold capitalize transition-all cursor-pointer ${animationSpeed === speed ? "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs" : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"}`}
+                              >
+                                {speed}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Reduced Motion Toggle */}
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                          <div>
+                            <span className="text-[12px] font-semibold text-neutral-850 dark:text-neutral-200">Reduced Motion</span>
+                            <p className="text-[9.5px] text-neutral-400">Disable transitions and transform animations</p>
+                          </div>
+                          <button
+                            onClick={() => setReducedMotion(!reducedMotion)}
+                            className={`relative w-10 h-5.5 rounded-full transition-colors cursor-pointer border border-black/10 dark:border-white/10 ${reducedMotion ? "bg-[#D4AF37]" : "bg-neutral-350 dark:bg-neutral-700"}`}
+                          >
+                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-xs transition-all ${reducedMotion ? "left-[21px]" : "left-0.5"}`} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2062,20 +2450,21 @@ export default function DashboardLayout() {
                   {/* Back button */}
                   <button 
                     onClick={() => setActiveView("dashboard")}
-                    className="flex items-center gap-1 text-[11px] font-bold text-neutral-500 hover:text-neutral-800 dark:hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 text-[11.5px] font-bold text-neutral-500 hover:text-neutral-800 dark:hover:text-white transition-colors cursor-pointer font-poppins"
                   >
                     <ChevronLeft size={14} />
                     Back to Dashboard
                   </button>
 
-                  <div className={`p-6 rounded-2xl ${glassStyle}`}>
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                  {/* Header Banner Area */}
+                  <div className={`p-6 rounded-2xl relative overflow-hidden ${glassStyle}`}>
+                    <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
                       {/* Left: Book Cover preview block */}
-                      <div className="relative w-44 h-64 rounded-xl overflow-hidden shadow-xl flex bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E3A8A] border border-neutral-700/10 shrink-0">
+                      <div className="relative w-44 h-64 rounded-xl overflow-hidden shadow-2xl flex bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E3A8A] border border-neutral-700/10 shrink-0 transform hover:scale-[1.02] transition-transform duration-300">
                         <div className="w-[12px] h-full bg-[#0B0F19]" />
                         <div className="flex-1 h-full p-4 flex flex-col justify-between">
                           <span className="text-[9px] uppercase tracking-widest text-[#D4AF37] font-bold text-center">{activeBook.genre || "Novel"}</span>
-                          <span className="text-[12px] font-bold font-cinzel text-white leading-tight text-center mt-6">{activeBook.title}</span>
+                          <span className="text-[12px] font-bold font-cinzel text-white leading-tight text-center mt-6 line-clamp-4">{activeBook.title}</span>
                           <div className="flex flex-col items-center">
                             <div className="w-6 h-[0.5px] bg-[#D4AF37] opacity-60 mb-1" />
                             <span className="text-[8px] text-white/70 font-mono">{activeBook.wordCount?.toLocaleString() || "0"} words</span>
@@ -2084,7 +2473,7 @@ export default function DashboardLayout() {
                       </div>
 
                       {/* Right: Book Details & Actions */}
-                      <div className="flex-1 flex flex-col justify-between h-full space-y-6 text-left">
+                      <div className="flex-1 flex flex-col justify-between text-left space-y-6">
                         <div>
                           <div className="flex flex-wrap items-center gap-3">
                             <h1 className="text-2xl font-bold font-cinzel text-neutral-900 dark:text-white">
@@ -2100,11 +2489,11 @@ export default function DashboardLayout() {
                             </button>
                           </div>
                           
-                          <p className="text-[11px] text-neutral-500 mt-1">
+                          <p className="text-[11px] text-neutral-500 mt-1 font-poppins">
                             Created on {activeBook.createdDate || "May 10, 2026"} • Last edited {activeBook.lastEdited}
                           </p>
 
-                          <div className="flex flex-wrap gap-2 mt-3">
+                          <div className="flex flex-wrap gap-2 mt-3 font-poppins">
                             <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-[#D4AF37]/10 text-[#D4AF37] uppercase">
                               {activeBook.genre}
                             </span>
@@ -2120,30 +2509,21 @@ export default function DashboardLayout() {
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                             <div className="p-3.5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
-                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block">Word Count</span>
+                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block font-poppins">Word Count</span>
                               <span className="text-[15px] font-bold text-neutral-800 dark:text-neutral-100 mt-1 block font-poppins">{activeBook.wordCount?.toLocaleString() || "0"}</span>
                             </div>
                             <div className="p-3.5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
-                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block">Reading Time</span>
+                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block font-poppins">Reading Time</span>
                               <span className="text-[15px] font-bold text-neutral-800 dark:text-neutral-100 mt-1 block font-poppins">{activeBook.readingTime || "1h 45m"}</span>
                             </div>
                             <div className="p-3.5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
-                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block">Total Chapters</span>
+                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block font-poppins">Total Chapters</span>
                               <span className="text-[15px] font-bold text-neutral-800 dark:text-neutral-100 mt-1 block font-poppins">{activeBook.chapterCount || "50"}</span>
                             </div>
                             <div className="p-3.5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
-                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block">Page Count</span>
+                              <span className="text-[9.5px] text-neutral-400 dark:text-neutral-500 block font-poppins">Page Count</span>
                               <span className="text-[15px] font-bold text-neutral-800 dark:text-neutral-100 mt-1 block font-poppins">{activeBook.pages?.length || "50"}</span>
                             </div>
-                          </div>
-
-                          <div className="mt-6">
-                            <span className="text-[10px] font-bold text-neutral-400 block mb-1.5 uppercase tracking-wider">Synopsis / Back Cover Outline</span>
-                            <p className="text-[11.5px] text-neutral-600 dark:text-neutral-300 leading-relaxed font-sans">
-                              {activeBook.id === "the-lost-kingdom" 
-                                ? "In a realm lit by two suns, an ancient portal stone remains locked. When Aurelia, a scholar from the outer citadels, discovers a glowing runic inscription on the Obsidian Cliffs, she triggers a cosmic alignment that threatens to tear the fabric of the kingdom. She must venture through the Silver Gate to retrieve a lost heritage before the shadow lord claim the relic."
-                                : "No synopsis written yet. Use the book settings panel in the Studio editor to write a summary of your manuscript."}
-                            </p>
                           </div>
                         </div>
 
@@ -2151,7 +2531,7 @@ export default function DashboardLayout() {
                         <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-black/5 dark:border-white/5">
                           <button 
                             onClick={() => handleOpenStudio(activeBook)}
-                            className="px-5 py-2.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-xl text-[12px] flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            className="px-5 py-2.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-xl text-[12px] flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors font-poppins"
                           >
                             <Play size={13} />
                             Open in Book Studio
@@ -2159,7 +2539,7 @@ export default function DashboardLayout() {
                           
                           <button 
                             onClick={() => handleDuplicateBook(activeBook)}
-                            className="px-4 py-2.5 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer"
+                            className="px-4 py-2.5 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors font-poppins"
                           >
                             <Copy size={13} />
                             Duplicate
@@ -2170,7 +2550,7 @@ export default function DashboardLayout() {
                               const nextStatus = activeBook.status === "Completed" ? "Draft" : "Completed";
                               setBooks(prev => prev.map(b => b.id === activeBook.id ? { ...b, status: nextStatus } : b));
                             }}
-                            className="px-4 py-2.5 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer"
+                            className="px-4 py-2.5 border border-black/5 dark:border-white/10 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors font-poppins"
                           >
                             <Archive size={13} />
                             {activeBook.status === "Completed" ? "Mark as Draft" : "Mark as Completed"}
@@ -2178,13 +2558,507 @@ export default function DashboardLayout() {
 
                           <button 
                             onClick={() => handleDeleteBook(activeBook.id)}
-                            className="px-4 py-2.5 border border-red-500/20 text-red-500 hover:bg-red-500/10 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer ml-auto"
+                            className="px-4 py-2.5 border border-red-500/20 text-red-500 hover:bg-red-500/10 font-bold rounded-xl text-[11px] flex items-center gap-1.5 cursor-pointer ml-auto transition-colors font-poppins"
                           >
                             <Trash2 size={13} />
                             Delete Book
                           </button>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Sub Navigation Tabs */}
+                    <div className="flex gap-1 border-b border-black/[0.04] dark:border-white/[0.06] pb-px overflow-x-auto no-scrollbar mt-10 mb-6">
+                      {[
+                        { id: "overview", label: "Overview", icon: <Layers size={13} /> },
+                        { id: "chapters", label: "Chapters", icon: <BookOpen size={13} /> },
+                        { id: "characters", label: "Characters", icon: <Users size={13} /> },
+                        { id: "world", label: "Worldbuilding", icon: <Globe size={13} /> },
+                        { id: "timeline", label: "Timeline", icon: <GitCommit size={13} /> },
+                        { id: "notes", label: "Notes & Assets", icon: <FileText size={13} /> },
+                        { id: "export", label: "Export & Publish", icon: <Download size={13} /> },
+                        { id: "history", label: "Version History", icon: <History size={13} /> }
+                      ].map(tab => {
+                        const isActive = bookDetailsTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setBookDetailsTab(tab.id as any)}
+                            className={`flex items-center gap-1.5 px-4 py-2.5 border-b-2 text-[11.5px] font-bold font-poppins transition-all cursor-pointer whitespace-nowrap ${
+                              isActive
+                                ? "border-[#D4AF37] text-neutral-900 dark:text-white"
+                                : "border-transparent text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+                            }`}
+                          >
+                            {tab.icon}
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Tab Views */}
+                    <div className="mt-4">
+                      {/* 1. OVERVIEW TAB */}
+                      {bookDetailsTab === "overview" && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-left font-poppins">
+                          <div className="lg:col-span-2 space-y-6">
+                            <div className="p-5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
+                              <span className="text-[10px] font-bold text-neutral-400 block mb-2.5 uppercase tracking-wider">Synopsis / Back Cover Outline</span>
+                              <p className="text-[12px] text-neutral-600 dark:text-neutral-300 leading-relaxed font-sans">
+                                {activeBook.id === "the-lost-kingdom" 
+                                  ? "In a realm lit by two suns, an ancient portal stone remains locked. When Aurelia, a scholar from the outer citadels, discovers a glowing runic inscription on the Obsidian Cliffs, she triggers a cosmic alignment that threatens to tear the fabric of the kingdom. She must venture through the Silver Gate to retrieve a lost heritage before the shadow lord claims the relic."
+                                  : "No synopsis written yet. Use the book settings panel in the Studio editor to write a summary of your manuscript."}
+                              </p>
+                            </div>
+
+                            <div className="p-5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
+                              <span className="text-[10px] font-bold text-neutral-400 block mb-3 uppercase tracking-wider">Writing Goals & Milestones</span>
+                              <div className="space-y-3.5">
+                                <div>
+                                  <div className="flex justify-between text-[11.5px] font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                                    <span>Manuscript Completion Progress</span>
+                                    <span>{activeBook.progress}%</span>
+                                  </div>
+                                  <div className="w-full h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#D4AF37] rounded-full transition-all duration-500" style={{ width: `${activeBook.progress}%` }} />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4 pt-3 text-[11px]">
+                                  <div>
+                                    <span className="text-neutral-400 block font-medium">Daily Target</span>
+                                    <span className="text-neutral-700 dark:text-neutral-250 font-bold block mt-0.5">500 words / day</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-neutral-400 block font-medium">Current Streak</span>
+                                    <span className="text-neutral-700 dark:text-neutral-250 font-bold block mt-0.5">4 days writing</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-neutral-400 block font-medium">Target Deadline</span>
+                                    <span className="text-neutral-700 dark:text-neutral-250 font-bold block mt-0.5">Sept 15, 2026</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-6">
+                            <div className="p-5 rounded-xl bg-black/[0.01] dark:bg-white/[0.015] border border-black/5 dark:border-white/5 flex flex-col items-center">
+                              <span className="text-[10px] font-bold text-neutral-400 block mb-4 uppercase tracking-wider">Word Count Target</span>
+                              <div className="relative w-28 h-28 flex items-center justify-center">
+                                <svg className="w-full h-full transform -rotate-90">
+                                  <circle cx="56" cy="56" r="48" className="stroke-neutral-200 dark:stroke-neutral-800 fill-none" strokeWidth="6" />
+                                  <circle cx="56" cy="56" r="48" className="stroke-[#D4AF37] fill-none" strokeWidth="6" strokeDasharray={301.6} strokeDashoffset={301.6 - (301.6 * (activeBook.progress || 0)) / 100} strokeLinecap="round" />
+                                </svg>
+                                <div className="absolute flex flex-col items-center text-center">
+                                  <span className="text-sm font-bold text-neutral-800 dark:text-white leading-none">{activeBook.progress}%</span>
+                                  <span className="text-[8.5px] text-neutral-400 uppercase tracking-wider mt-1 leading-none font-medium">Done</span>
+                                </div>
+                              </div>
+                              <div className="mt-4 text-center">
+                                <span className="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">{activeBook.wordCount?.toLocaleString()} words</span>
+                                <span className="text-[10.5px] text-neutral-400 block mt-0.5">Goal: {activeBook.targetWordCount?.toLocaleString() || "80,000"} words</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. CHAPTERS TAB */}
+                      {bookDetailsTab === "chapters" && (
+                        <div className="space-y-4 text-left font-poppins">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">Chapter Outlines ({activeBook.pages?.length || 0})</span>
+                            <button 
+                              onClick={() => {
+                                const newPageNum = (activeBook.pages?.length || 0) + 1;
+                                const updatedBook = {
+                                  ...activeBook,
+                                  chapterCount: (activeBook.chapterCount || 0) + 1,
+                                  pages: [...(activeBook.pages || []), {
+                                    id: newPageNum,
+                                    chapterNumber: newPageNum,
+                                    chapterTitle: `Chapter ${newPageNum}`,
+                                    elements: []
+                                  }]
+                                };
+                                setBooks(prev => prev.map(b => b.id === activeBook.id ? updatedBook : b));
+                              }}
+                              className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[10.5px] flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                            >
+                              <Plus size={12} />
+                              Add New Chapter
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                            {activeBook.pages && activeBook.pages.length > 0 ? (
+                              activeBook.pages.map((p, idx) => (
+                                <div key={idx} className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] hover:bg-black/[0.02] dark:hover:bg-white/[0.03] flex items-center justify-between transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] flex items-center justify-center font-bold text-xs">
+                                      {p.chapterNumber || idx + 1}
+                                    </div>
+                                    <div>
+                                      <h4 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100">
+                                        {p.chapterTitle || `Chapter ${p.chapterNumber || idx + 1}`}
+                                      </h4>
+                                      <p className="text-[10px] text-neutral-400 font-medium mt-0.5">
+                                        Page index {p.id} • Elements: {p.elements?.length || 0} items
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#FFF8E1] text-[#F57F17] dark:bg-[#3E2723]/60 dark:text-[#FFE082]">
+                                      Drafting
+                                    </span>
+                                    <button 
+                                      onClick={() => {
+                                        let fullBook = activeBook;
+                                        if (!activeBook.pages || activeBook.pages.length === 0) {
+                                          const freshMock = generateMockBook();
+                                          fullBook = {
+                                            ...activeBook,
+                                            pages: freshMock.pages
+                                          };
+                                          setBooks(prev => prev.map(b => b.id === activeBook.id ? fullBook : b));
+                                        }
+                                        setDocument(fullBook);
+                                        setActivePage(p.id);
+                                        setActiveView("studio");
+                                      }}
+                                      className="px-2.5 py-1.5 border border-black/5 dark:border-white/10 hover:bg-[#D4AF37] hover:text-white dark:hover:bg-[#D4AF37] text-neutral-700 dark:text-neutral-300 font-bold rounded-lg text-[10px] cursor-pointer transition-all"
+                                    >
+                                      Edit Chapter
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-8 text-neutral-400 text-[11px]">
+                                No chapters defined. Click the button above to add a new chapter outline.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. CHARACTERS TAB */}
+                      {bookDetailsTab === "characters" && (
+                        <div className="space-y-4 text-left font-poppins">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">Cast of Characters</span>
+                            <button 
+                              onClick={() => {
+                                const charName = prompt("Enter character name:");
+                                if (!charName) return;
+                                const charRole = prompt("Enter character role (e.g. Protagonist, Antagonist, Supporting):", "Supporting");
+                                const charDesc = prompt("Enter brief character description:");
+                                const newChar = {
+                                  id: `char-${Date.now()}`,
+                                  name: charName,
+                                  role: charRole || "Supporting",
+                                  description: charDesc || "No description provided."
+                                };
+                                setCharacters(prev => ({
+                                  ...prev,
+                                  [activeBook.id]: [...(prev[activeBook.id] || []), newChar]
+                                }));
+                              }}
+                              className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[10.5px] flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                            >
+                              <Plus size={12} />
+                              Add Character Outline
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-poppins">
+                            {(characters[activeBook.id] || []).map(char => (
+                              <div key={char.id} className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-2 relative group hover:border-[#D4AF37]/35 transition-all font-poppins">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h4 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{char.name}</h4>
+                                    <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded mt-0.5 uppercase ${
+                                      char.role.toLowerCase() === "protagonist" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                      char.role.toLowerCase() === "antagonist" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                      "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400"
+                                    }`}>
+                                      {char.role}
+                                    </span>
+                                  </div>
+                                  <button 
+                                    onClick={() => {
+                                      setCharacters(prev => ({
+                                        ...prev,
+                                        [activeBook.id]: prev[activeBook.id].filter(c => c.id !== char.id)
+                                      }));
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded transition-opacity cursor-pointer"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                                <p className="text-[11px] text-neutral-500 leading-normal">{char.description}</p>
+                              </div>
+                            ))}
+                            {(characters[activeBook.id] || []).length === 0 && (
+                              <div className="col-span-2 text-center py-8 text-neutral-400 text-[11px]">
+                                No characters outlined yet.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4. WORLDBUILDING TAB */}
+                      {bookDetailsTab === "world" && (
+                        <div className="space-y-4 text-left font-poppins">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">World Concepts & Lore</span>
+                            <button 
+                              onClick={() => {
+                                const wTitle = prompt("Enter concept/location title:");
+                                if (!wTitle) return;
+                                const wCat = prompt("Enter category (e.g. Location, Magic, Lore):", "Location");
+                                const wDetails = prompt("Enter details:");
+                                const newConcept = {
+                                  id: `world-${Date.now()}`,
+                                  title: wTitle,
+                                  category: wCat || "Location",
+                                  details: wDetails || "No description provided."
+                                };
+                                setWorldConcepts(prev => ({
+                                  ...prev,
+                                  [activeBook.id]: [...(prev[activeBook.id] || []), newConcept]
+                                }));
+                              }}
+                              className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[10.5px] flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                            >
+                              <Plus size={12} />
+                              Add World Concept
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {(worldConcepts[activeBook.id] || []).map(wc => (
+                              <div key={wc.id} className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-2 relative group hover:border-[#D4AF37]/35 transition-all">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h4 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100">{wc.title}</h4>
+                                    <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded mt-0.5 uppercase bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                      {wc.category}
+                                    </span>
+                                  </div>
+                                  <button 
+                                    onClick={() => {
+                                      setWorldConcepts(prev => ({
+                                        ...prev,
+                                        [activeBook.id]: prev[activeBook.id].filter(w => w.id !== wc.id)
+                                      }));
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded transition-opacity cursor-pointer"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                                <p className="text-[11px] text-neutral-500 leading-normal">{wc.details}</p>
+                              </div>
+                            ))}
+                            {(worldConcepts[activeBook.id] || []).length === 0 && (
+                              <div className="col-span-2 text-center py-8 text-neutral-400 text-[11px]">
+                                No worldbuilding concepts created yet.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 5. TIMELINE TAB */}
+                      {bookDetailsTab === "timeline" && (
+                        <div className="space-y-4 text-left font-poppins">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider">Story Timeline</span>
+                            <button 
+                              onClick={() => {
+                                const tPeriod = prompt("Enter period (e.g. Act I, Chapter 1, Prologue):");
+                                if (!tPeriod) return;
+                                const tEvent = prompt("Enter event title:");
+                                const tDesc = prompt("Enter event description:");
+                                const newNode = {
+                                  id: `time-${Date.now()}`,
+                                  period: tPeriod,
+                                  event: tEvent || "New Event",
+                                  description: tDesc || "No details specified."
+                                };
+                                setTimelineNodes(prev => ({
+                                  ...prev,
+                                  [activeBook.id]: [...(prev[activeBook.id] || []), newNode]
+                                }));
+                              }}
+                              className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[10.5px] flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                            >
+                              <Plus size={12} />
+                              Add Timeline Milestone
+                            </button>
+                          </div>
+
+                          <div className="relative pl-6 border-l-2 border-dashed border-[#D4AF37]/30 space-y-6 py-2 ml-3">
+                            {(timelineNodes[activeBook.id] || []).map((node, index) => (
+                              <div key={node.id} className="relative group">
+                                <span className="absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-[#D4AF37] bg-white dark:bg-[#0E131F] flex items-center justify-center">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />
+                                </span>
+                                
+                                <div className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] hover:border-[#D4AF37]/25 transition-all">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <span className="text-[9.5px] font-bold text-[#D4AF37] uppercase tracking-wide">{node.period}</span>
+                                      <h4 className="text-[13px] font-bold text-neutral-800 dark:text-neutral-100 mt-0.5">{node.event}</h4>
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        setTimelineNodes(prev => ({
+                                          ...prev,
+                                          [activeBook.id]: prev[activeBook.id].filter(t => t.id !== node.id)
+                                        }));
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-500/10 rounded transition-opacity cursor-pointer"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                  <p className="text-[11px] text-neutral-500 mt-1.5 leading-normal">{node.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                            {(timelineNodes[activeBook.id] || []).length === 0 && (
+                              <div className="text-center py-8 text-neutral-400 text-[11px]">
+                                Timeline is currently empty.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 6. NOTES & ASSETS TAB */}
+                      {bookDetailsTab === "notes" && (
+                        <div className="space-y-6 text-left font-poppins">
+                          <div>
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider block mb-3">Manuscript Research & Outline Notes</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-2">
+                                <h4 className="text-[12.5px] font-bold text-neutral-800 dark:text-neutral-100">Drafting Strategy</h4>
+                                <p className="text-[11px] text-neutral-500 leading-normal font-medium">Focus on completing Act I by early next month. Leave formatting adjustments to revisions. Focus heavily on Aurelia's emotional reaction to the inscription.</p>
+                              </div>
+                              <div className="p-4 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-2">
+                                <h4 className="text-[12.5px] font-bold text-neutral-800 dark:text-neutral-100">Portal Inscription References</h4>
+                                <p className="text-[11px] text-neutral-500 leading-normal font-medium">Rune translation key: Alpha-Aetheris refers to star alignments. Sol-Lunar represents solar calendar gates. Check library sketches folder for drawings.</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider block mb-3">Book Media & Uploaded Assets</span>
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-3 font-poppins">
+                              <div className="aspect-square rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 border border-black/5 dark:border-white/5 flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:bg-neutral-300/40 dark:hover:bg-neutral-850/60 transition-colors">
+                                <span className="text-[10px] font-bold text-[#D4AF37] uppercase">Map Outline</span>
+                                <span className="text-[8.5px] text-neutral-400 mt-1 block font-poppins">velora_world.png</span>
+                              </div>
+                              <div className="aspect-square rounded-xl bg-neutral-200/50 dark:bg-neutral-800/50 border border-black/5 dark:border-white/5 flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:bg-neutral-300/40 dark:hover:bg-neutral-850/60 transition-colors">
+                                <span className="text-[10px] font-bold text-[#D4AF37] uppercase">Rune Sketch</span>
+                                <span className="text-[8.5px] text-neutral-400 mt-1 block font-poppins">star_glyphs.jpg</span>
+                              </div>
+                              <div className="aspect-square rounded-xl border-2 border-dashed border-black/10 dark:border-white/10 hover:border-[#D4AF37] flex flex-col items-center justify-center p-3 text-center cursor-pointer hover:bg-[#D4AF37]/5 transition-colors">
+                                <Plus size={14} className="text-neutral-400" />
+                                <span className="text-[8.5px] text-neutral-400 mt-1 block font-medium">Upload Asset</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 7. EXPORT & PUBLISH TAB */}
+                      {bookDetailsTab === "export" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left font-poppins">
+                          <div className="p-5 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-4">
+                            <h3 className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-1.5 font-poppins">
+                              <Download size={14} className="text-[#D4AF37]" />
+                              Export Manuscript
+                            </h3>
+                            <p className="text-[11.5px] text-neutral-400 leading-normal font-poppins">
+                              Download your entire book manuscript compiled in your selected format with correct page layout headers.
+                            </p>
+
+                            <div className="space-y-2 pt-2">
+                              <div className="flex items-center justify-between p-2.5 rounded-lg border border-black/5 dark:border-white/10 bg-white/60 dark:bg-black/20">
+                                <div>
+                                  <span className="text-[11.5px] font-semibold text-neutral-850 dark:text-neutral-200">EPUB Format</span>
+                                  <span className="text-[9px] text-neutral-400 block mt-0.5">Best for Apple Books, Kindle, e-readers</span>
+                                </div>
+                                <button className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[9.5px] cursor-pointer transition-colors shadow-xs">
+                                  Export EPUB
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between p-2.5 rounded-lg border border-black/5 dark:border-white/10 bg-white/60 dark:bg-black/20">
+                                <div>
+                                  <span className="text-[11.5px] font-semibold text-neutral-850 dark:text-neutral-200">Press-Ready PDF</span>
+                                  <span className="text-[9px] text-neutral-400 block mt-0.5">Complete with margins, crop marks, headers</span>
+                                </div>
+                                <button className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-lg text-[9.5px] cursor-pointer transition-colors shadow-xs">
+                                  Export PDF
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-5 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] space-y-4">
+                            <h3 className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
+                              <Sparkles size={14} className="text-[#D4AF37]" />
+                              Velora Distribution
+                            </h3>
+                            <p className="text-[11.5px] text-neutral-400 leading-normal">
+                              Publish your book to the Velora store and global retailers. Get custom publishing setup, formatting checks, and distribution assistance.
+                            </p>
+                            
+                            <button className="w-full py-2.5 bg-[#D4AF37] hover:bg-[#C19B34] text-white font-bold rounded-xl text-[11px] cursor-pointer transition-all shadow-xs flex items-center justify-center gap-1.5 mt-4">
+                              <Sparkles size={13} />
+                              Start Publishing Workflow
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 8. VERSION HISTORY TAB */}
+                      {bookDetailsTab === "history" && (
+                        <div className="space-y-4 text-left font-poppins">
+                          <span className="text-[10.5px] font-bold text-neutral-400 uppercase tracking-wider block">Auto-save backups & Snapshot History</span>
+                          
+                          <div className="space-y-2">
+                            <div className="p-3.5 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] flex items-center justify-between">
+                              <div>
+                                <span className="text-[12px] font-semibold text-neutral-800 dark:text-neutral-100">Auto-save backup (Today, 10:42 AM)</span>
+                                <p className="text-[9.5px] text-neutral-400 mt-0.5 font-poppins">Word count: {activeBook.wordCount?.toLocaleString() || "24,530"} words • Status: Saved cleanly</p>
+                              </div>
+                              <button className="px-2.5 py-1.5 border border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-[#D4AF37] font-bold rounded-lg text-[9.5px] cursor-pointer font-poppins transition-colors">
+                                Restore Snapshot
+                              </button>
+                            </div>
+
+                            <div className="p-3.5 rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.015] flex items-center justify-between">
+                              <div>
+                                <span className="text-[12px] font-semibold text-neutral-800 dark:text-neutral-100">Version 1.0 Draft Submission (Yesterday, 4:15 PM)</span>
+                                <p className="text-[9.5px] text-neutral-400 mt-0.5">Word count: 24,110 words • Manually captured snapshot</p>
+                              </div>
+                              <button className="px-2.5 py-1.5 border border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-[#D4AF37] font-bold rounded-lg text-[9.5px] cursor-pointer font-poppins transition-colors">
+                                Restore Snapshot
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2232,34 +3106,36 @@ export default function DashboardLayout() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col">
                     <label className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Genre</label>
-                    <select
+                    <DashboardSelect
                       value={newBookGenre}
-                      onChange={(e) => {
-                        setNewBookGenre(e.target.value);
-                        setNewBookTemplate(e.target.value.toLowerCase());
+                      onChange={(val) => {
+                        setNewBookGenre(val);
+                        setNewBookTemplate(val.toLowerCase());
                       }}
-                      className="w-full px-3.5 py-2 text-[12px] rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none text-neutral-700 dark:text-neutral-300"
-                    >
-                      <option value="Fantasy">Fantasy</option>
-                      <option value="Romance">Romance</option>
-                      <option value="Sci-Fi">Sci-Fi</option>
-                      <option value="Classic">Classic</option>
-                      <option value="Mystery">Mystery</option>
-                    </select>
+                      options={[
+                        { value: "Fantasy", label: "Fantasy" },
+                        { value: "Romance", label: "Romance" },
+                        { value: "Sci-Fi", label: "Sci-Fi" },
+                        { value: "Classic", label: "Classic" },
+                        { value: "Mystery", label: "Mystery" }
+                      ]}
+                      buttonClassName="w-full px-3.5 py-2 text-[12px] rounded-xl"
+                    />
                   </div>
 
                   <div className="flex flex-col">
                     <label className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1">Cover Style</label>
-                    <select
+                    <DashboardSelect
                       value={newBookTemplate}
-                      onChange={(e) => setNewBookTemplate(e.target.value)}
-                      className="w-full px-3.5 py-2 text-[12px] rounded-xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.02] focus:outline-none text-neutral-700 dark:text-neutral-300"
-                    >
-                      <option value="fantasy">Gold Filigree (Fantasy)</option>
-                      <option value="romance">Pink Floral (Romance)</option>
-                      <option value="sci-fi">Cyber Neon (Sci-Fi)</option>
-                      <option value="classic">Brown Leather (Classic)</option>
-                    </select>
+                      onChange={setNewBookTemplate}
+                      options={[
+                        { value: "fantasy", label: "Gold Filigree (Fantasy)" },
+                        { value: "romance", label: "Pink Floral (Romance)" },
+                        { value: "sci-fi", label: "Cyber Neon (Sci-Fi)" },
+                        { value: "classic", label: "Brown Leather (Classic)" }
+                      ]}
+                      buttonClassName="w-full px-3.5 py-2 text-[12px] rounded-xl"
+                    />
                   </div>
                 </div>
 

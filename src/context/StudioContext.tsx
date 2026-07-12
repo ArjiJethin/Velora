@@ -220,6 +220,15 @@ interface StudioContextType {
     history: { date: string; words: number }[];
   };
   setWritingGoals: React.Dispatch<React.SetStateAction<any>>;
+
+  glassIntensity: "low" | "medium" | "high";
+  setGlassIntensity: (intensity: "low" | "medium" | "high") => void;
+  interfaceDensity: "compact" | "cozy" | "spacious";
+  setInterfaceDensity: (density: "compact" | "cozy" | "spacious") => void;
+  animationSpeed: "slow" | "normal" | "fast";
+  setAnimationSpeed: (speed: "slow" | "normal" | "fast") => void;
+  reducedMotion: boolean;
+  setReducedMotion: (val: boolean) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -227,6 +236,10 @@ const StudioContext = createContext<StudioContextType | undefined>(undefined);
 export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Decoupled Workspace and Book Templates
   const [workspaceThemeId, setWorkspaceThemeIdState] = useState<WorkspaceThemeId>("warm-ivory");
+  const [glassIntensity, setGlassIntensity] = useState<"low" | "medium" | "high">("medium");
+  const [interfaceDensity, setInterfaceDensity] = useState<"compact" | "cozy" | "spacious">("cozy");
+  const [animationSpeed, setAnimationSpeed] = useState<"slow" | "normal" | "fast">("normal");
+  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
   const [bookTemplateId, setBookTemplateIdState] = useState<BookTemplateId>("fantasy");
   
   // Navigation & Zoom
@@ -333,7 +346,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     name: "Aurelia Vance",
     plan: "premium",
     avatarUrl: "",
-    email: "aurelia@lumora.app"
+    email: "aurelia@velora.app"
   });
 
   const [workspaceNotes, setWorkspaceNotes] = useState<any[]>([
@@ -479,15 +492,45 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const bookTemplate = BOOK_TEMPLATES[bookTemplateId] || BOOK_TEMPLATES.fantasy;
   const theme = workspaceTheme; // backward compatibility
 
-  // Auto-sync CSS variables to root when theme changes
+  // Auto-sync theme variables and classes to root when settings change
   useEffect(() => {
     if (typeof window !== "undefined") {
       const root = window.document.documentElement;
+      
+      // Accent theme color variables
       root.style.setProperty("--accent-color", workspaceTheme.accentColor);
       root.style.setProperty("--accent-glow", workspaceTheme.accentGlow);
       root.style.setProperty("--accent-glow-strong", workspaceTheme.accentGlowStrong);
+      
+      // Dark/Light mode class syncing
+      if (workspaceTheme.isDark) {
+        root.classList.add("dark");
+        root.classList.add("dark-workspace");
+      } else {
+        root.classList.remove("dark");
+        root.classList.remove("dark-workspace");
+      }
+
+      // Glass Intensity classes
+      root.classList.remove("glass-low", "glass-medium", "glass-high");
+      root.classList.add(`glass-${glassIntensity}`);
+
+      // Density classes
+      root.classList.remove("density-compact", "density-cozy", "density-spacious");
+      root.classList.add(`density-${interfaceDensity}`);
+
+      // Animation Speed classes
+      root.classList.remove("speed-slow", "speed-normal", "speed-fast");
+      root.classList.add(`speed-${animationSpeed}`);
+
+      // Reduced Motion class
+      if (reducedMotion) {
+        root.classList.add("reduced-motion");
+      } else {
+        root.classList.remove("reduced-motion");
+      }
     }
-  }, [workspaceTheme]);
+  }, [workspaceTheme, glassIntensity, interfaceDensity, animationSpeed, reducedMotion]);
 
   // Helper to push a new state onto history stack
   const pushHistory = useCallback((newDoc: BookDocument) => {
@@ -1520,6 +1563,14 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setNotifications,
         writingGoals,
         setWritingGoals,
+        glassIntensity,
+        setGlassIntensity,
+        interfaceDensity,
+        setInterfaceDensity,
+        animationSpeed,
+        setAnimationSpeed,
+        reducedMotion,
+        setReducedMotion,
       }}
     >
       {children}

@@ -149,7 +149,7 @@ export const PropertiesPanel: React.FC = () => {
   };
 
   return (
-    <div className="w-[300px] h-[calc(100vh-4rem)] border-l border-black/5 dark:border-white/[0.04] p-4 overflow-y-auto space-y-4 select-none flex-shrink-0 z-10 scrollbar-thin lumora-glass">
+    <div className="w-[300px] h-[calc(100vh-4rem)] border-l border-black/5 dark:border-white/[0.04] p-4 overflow-y-auto space-y-4 select-none flex-shrink-0 z-10 scrollbar-thin velora-glass">
       
       {selectedElement ? (
         <>

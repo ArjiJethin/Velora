@@ -203,7 +203,7 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="flex select-none z-20 relative">
       {/* 1. Far Left Icon Bar */}
-      <div className="w-16 h-[calc(100vh-4rem)] border-r border-black/5 dark:border-white/[0.04] flex flex-col justify-between items-center py-4 flex-shrink-0 z-20 lumora-ceramic">
+      <div className="w-16 h-[calc(100vh-4rem)] border-r border-black/5 dark:border-white/[0.04] flex flex-col justify-between items-center py-4 flex-shrink-0 z-20 velora-ceramic">
         <div className="flex flex-col gap-3 w-full">
           {navigationTabs.map((tab) => {
             const Icon = tab.icon;
@@ -268,7 +268,7 @@ export const Sidebar: React.FC = () => {
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "tween", duration: 0.25 }}
-            className="h-[calc(100vh-4rem)] border-r border-black/5 dark:border-white/[0.04] overflow-hidden flex flex-col flex-shrink-0 z-10 lumora-glass"
+            className="h-[calc(100vh-4rem)] border-r border-black/5 dark:border-white/[0.04] overflow-hidden flex flex-col flex-shrink-0 z-10 velora-glass"
           >
             {/* Pages Tab Panel */}
             {activeTab === "pages" && (
@@ -337,7 +337,7 @@ export const Sidebar: React.FC = () => {
                         )}
 
                         {/* Miniature spread page view */}
-                        <div className="relative w-full h-[110px] lumora-glass rounded-lg flex items-center justify-center p-2 mb-2 border border-black/10 dark:border-white/[0.08] group-hover:border-black/15 dark:group-hover:border-white/15 transition-colors overflow-hidden">
+                        <div className="relative w-full h-[110px] velora-glass rounded-lg flex items-center justify-center p-2 mb-2 border border-black/10 dark:border-white/[0.08] group-hover:border-black/15 dark:group-hover:border-white/15 transition-colors overflow-hidden">
                           <div className="flex w-[160px] h-[90px] shadow-md rounded-sm relative overflow-hidden bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.08] dark:border-white/[0.08]">
                             {/* Page Left */}
                             {leftPageData && (

@@ -18,14 +18,14 @@ const StudioLayoutContent: React.FC = () => {
 
   if (readingMode) {
     return (
-      <div className={`h-screen w-screen flex overflow-hidden theme-transition ${theme.isDark ? "dark-workspace bg-[#070A0F] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"}`}>
+      <div className={`h-screen w-screen flex overflow-hidden theme-transition ${theme.isDark ? "dark-workspace bg-[#040609] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"}`}>
         <Workspace />
       </div>
     );
   }
 
   return (
-    <div className={`h-screen w-screen flex flex-col overflow-hidden theme-transition ${theme.isDark ? "dark-workspace bg-[#0B0F15] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"}`}>
+    <div className={`h-screen w-screen flex flex-col overflow-hidden theme-transition ${theme.isDark ? "dark-workspace bg-[#040609] text-[#F3F4F6]" : "bg-[#FAF6EE] text-[#2D2824]"}`}>
       {/* 1. Top Toolbar */}
       <Toolbar />
 
@@ -35,7 +35,7 @@ const StudioLayoutContent: React.FC = () => {
         <Sidebar />
 
         {/* Center Area: Book Workspace */}
-        <div className={`flex-1 flex flex-col overflow-hidden theme-transition ${theme.isDark ? "bg-[#0B0F15]" : "bg-[#FAF6EE]"}`}>
+        <div className={`flex-1 flex flex-col overflow-hidden theme-transition ${theme.isDark ? "bg-[#040609]" : "bg-[#FAF6EE]"}`}>
           {/* Book Canvas */}
           <Workspace />
         </div>

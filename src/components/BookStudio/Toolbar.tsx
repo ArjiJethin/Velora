@@ -48,7 +48,7 @@ export const Toolbar: React.FC = () => {
 
   return (
     <>
-      <header className="theme-transition h-16 w-full px-6 flex items-center justify-between select-none z-30 lumora-ceramic">
+      <header className="theme-transition h-16 w-full px-6 flex items-center justify-between select-none z-30 velora-ceramic">
         {/* Left: Brand & Title */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
@@ -85,7 +85,7 @@ export const Toolbar: React.FC = () => {
             </div>
             {/* Logo Text */}
             <span className="font-poppins tracking-wider text-[17px] font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent">
-              LUMORA
+              VELORA
             </span>
           </div>
 
@@ -123,7 +123,7 @@ export const Toolbar: React.FC = () => {
         </div>
 
         {/* Center: Tools Capsule */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center px-1.5 py-1 rounded-full lumora-capsule shadow-2xl">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center px-1.5 py-1 rounded-full velora-capsule shadow-2xl">
           <div className="flex items-center gap-1">
             {/* Undo */}
             <button
@@ -215,8 +215,8 @@ export const Toolbar: React.FC = () => {
             onClick={() => setShowPublishModal(true)}
             className="theme-transition flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-semibold text-black shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer btn-publish"
             style={{
-              backgroundColor: theme.accentColor,
-              boxShadow: `0 4px 14px ${theme.accentGlowStrong}`,
+              backgroundColor: "#D4AF37",
+              boxShadow: "0 4px 14px rgba(212, 175, 55, 0.4)",
             }}
           >
             <PublishIcon size={14} />
@@ -232,7 +232,7 @@ export const Toolbar: React.FC = () => {
                 AM
               </div>
             </div>
-            <div className="absolute top-[calc(100%+6px)] right-0 w-32 lumora-glass p-2 rounded-lg text-[11px] text-neutral-800 dark:text-neutral-400 text-center opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 scale-95 group-hover:scale-100">
+            <div className="absolute top-[calc(100%+6px)] right-0 w-32 velora-glass p-2 rounded-lg text-[11px] text-neutral-800 dark:text-neutral-400 text-center opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 scale-95 group-hover:scale-100">
               Aria Moon (Author)
             </div>
           </div>
@@ -247,7 +247,7 @@ export const Toolbar: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="lumora-glass w-full max-w-md p-6 rounded-2xl relative shadow-2xl overflow-hidden"
+              className="velora-glass w-full max-w-md p-6 rounded-2xl relative shadow-2xl overflow-hidden"
             >
               <div
                 className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-10 blur-xl theme-transition"
@@ -301,8 +301,8 @@ export const Toolbar: React.FC = () => {
                   }}
                   className="flex-1 py-2.5 rounded-lg text-black font-semibold text-[13px] theme-transition cursor-pointer"
                   style={{
-                    backgroundColor: theme.accentColor,
-                    boxShadow: `0 4px 12px ${theme.accentGlow}`,
+                    backgroundColor: "#D4AF37",
+                    boxShadow: "0 4px 12px rgba(212, 175, 55, 0.35)",
                   }}
                 >
                   Confirm & Publish

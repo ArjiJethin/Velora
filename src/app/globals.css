@@ -73,8 +73,8 @@ body {
   box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Lumora Material System */
-.lumora-glass {
+/* Velora Material System */
+.velora-glass {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(253, 251, 247, 0.8) 100%);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
@@ -85,7 +85,7 @@ body {
   color: #2D2824;
 }
 
-.dark-workspace .lumora-glass {
+.dark-workspace .velora-glass {
   background: linear-gradient(135deg, rgba(15, 22, 33, 0.6) 0%, rgba(8, 12, 18, 0.75) 100%);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 
@@ -94,7 +94,7 @@ body {
   color: #F3F4F6;
 }
 
-.lumora-ceramic {
+.velora-ceramic {
   background: linear-gradient(135deg, #FCFBF7 0%, #F5F3EB 100%);
   border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 
@@ -104,7 +104,7 @@ body {
   color: #2D2824;
 }
 
-.dark-workspace .lumora-ceramic {
+.dark-workspace .velora-ceramic {
   background: linear-gradient(135deg, #11151e 0%, #0d1016 100%);
   border: 1px solid rgba(255, 255, 255, 0.04);
   box-shadow: 
@@ -113,7 +113,7 @@ body {
   color: #F3F4F6;
 }
 
-.lumora-capsule {
+.velora-capsule {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.35) 100%), rgba(253, 249, 242, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -124,7 +124,7 @@ body {
   color: #2D2824;
 }
 
-.dark-workspace .lumora-capsule {
+.dark-workspace .velora-capsule {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(11, 16, 24, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 
@@ -133,7 +133,7 @@ body {
   color: #F3F4F6;
 }
 
-.lumora-satin {
+.velora-satin {
   background: linear-gradient(135deg, #FCFAF5 0%, #F5F1E6 100%);
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 
@@ -142,7 +142,7 @@ body {
   color: #2D2824;
 }
 
-.dark-workspace .lumora-satin {
+.dark-workspace .velora-satin {
   background: linear-gradient(135deg, #161b24 0%, #0d1117 100%);
   border: 1px solid rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.02);
@@ -150,7 +150,7 @@ body {
 }
 
 /* Ambient Environmental Lighting */
-.lumora-workspace-light {
+.velora-workspace-light {
   background-color: #FAF6EE;
   background-image: 
     radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.06) 0%, rgba(250, 246, 238, 0) 70%),
@@ -160,7 +160,7 @@ body {
   background-size: 100% 100%, 6px 6px, 18px 18px, 100% 100%;
 }
 
-.dark-workspace .lumora-workspace-light {
+.dark-workspace .velora-workspace-light {
   background-color: #06090d;
   background-image: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, rgba(11, 15, 21, 0) 65%);
   background-size: 100% 100%;
@@ -252,7 +252,7 @@ body {
 
 /* Legacy support rules for safety */
 .glass-panel {
-  composes: lumora-glass;
+  composes: velora-glass;
 }
 .glass-panel-light {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(253, 251, 247, 0.55) 100%);
@@ -326,4 +326,108 @@ body {
 /* Dynamic theme transition */
 .theme-transition {
   transition: border-color 0.4s ease, box-shadow 0.4s ease, background-color 0.4s ease, color 0.4s ease;
+}
+
+/* ==========================================================================
+   VELORA APPEARANCE & ACCESSIBILITY SETTINGS
+   ========================================================================== */
+
+/* 1. Glass Intensity */
+:root.glass-low .velora-glass {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(6px) saturate(100%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(100%) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+:root.glass-low.dark-workspace .velora-glass,
+:root.glass-low .dark-workspace .velora-glass {
+  background: rgba(15, 22, 33, 0.97) !important;
+  backdrop-filter: blur(6px) saturate(100%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:root.glass-high .velora-glass {
+  background: rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(48px) saturate(210%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(210%) !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+}
+:root.glass-high.dark-workspace .velora-glass,
+:root.glass-high .dark-workspace .velora-glass {
+  background: rgba(15, 22, 33, 0.35) !important;
+  backdrop-filter: blur(48px) saturate(210%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(210%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* 2. Interface Density */
+:root.density-compact .p-6 {
+  padding: 0.75rem !important;
+}
+:root.density-compact .p-8 {
+  padding: 1rem !important;
+}
+:root.density-compact .py-8 {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+:root.density-compact .py-12 {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+:root.density-compact .gap-6 {
+  gap: 0.75rem !important;
+}
+:root.density-compact .gap-8 {
+  gap: 1rem !important;
+}
+:root.density-compact .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem !important;
+}
+
+:root.density-spacious .p-6 {
+  padding: 2.25rem !important;
+}
+:root.density-spacious .p-8 {
+  padding: 2.75rem !important;
+}
+:root.density-spacious .py-8 {
+  padding-top: 2.75rem !important;
+  padding-bottom: 2.75rem !important;
+}
+:root.density-spacious .py-12 {
+  padding-top: 3.75rem !important;
+  padding-bottom: 3.75rem !important;
+}
+:root.density-spacious .gap-6 {
+  gap: 2.25rem !important;
+}
+:root.density-spacious .gap-8 {
+  gap: 2.75rem !important;
+}
+:root.density-spacious .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 2.25rem !important;
+}
+
+/* 3. Animation Speed & Motion Controls */
+:root.speed-slow * {
+  transition-duration: 450ms !important;
+  animation-duration: 450ms !important;
+}
+:root.speed-fast * {
+  transition-duration: 100ms !important;
+  animation-duration: 100ms !important;
+}
+
+:root.reduced-motion *,
+:root.reduced-motion *::before,
+:root.reduced-motion *::after {
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-delay: 0s !important;
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+  transform: none !important;
 }

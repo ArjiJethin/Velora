@@ -16,7 +16,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
     favoriteColors,
     addRecentColor,
     addFavoriteColor,
-    theme
   } = useStudio();
 
   const [hexInput, setHexInput] = useState(value);
@@ -24,18 +23,33 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
   const [hslInput, setHslInput] = useState("");
   const [colorMode, setColorMode] = useState<"hex" | "rgb" | "hsl">("hex");
 
-  // Helper colors
-  const presetColors = [
-    "#D4AF37", // Gold
-    "#00E5FF", // Cyan
-    "#00E676", // Green
-    "#FF1744", // Crimson
-    "#D500F9", // Violet
-    "#111111", // Dark
-    "#555555", // Gray
-    "#9E9E9E", // Light Gray
-    "#FAF2E9", // Cream
-    "#FFFFFF", // White
+  // Curated theme palettes
+  const curatedPalettes = [
+    {
+      name: "Warm Parchment",
+      colors: ["#FAF2E9", "#EFE9DE", "#D4AF37", "#5D4037"],
+      description: "Editorial creams & gold"
+    },
+    {
+      name: "Royal Velvet",
+      colors: ["#1A0B2E", "#311B92", "#D1C4E9", "#E040FB"],
+      description: "Regal purples & violet"
+    },
+    {
+      name: "Sage Forest",
+      colors: ["#0B2E13", "#1B5E20", "#C8E6C9", "#81C784"],
+      description: "Woodland green & moss"
+    },
+    {
+      name: "Midnight Ink",
+      colors: ["#0B132B", "#1C2541", "#3A506B", "#5BC0BE"],
+      description: "Deep navy & cool teal"
+    },
+    {
+      name: "Obsidian",
+      colors: ["#040609", "#121212", "#90A4AE", "#E0E0E0"],
+      description: "Sleek obsidian & charcoal"
+    }
   ];
 
   // Convert HEX to RGB
@@ -124,7 +138,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
 
   const handleHslSubmit = (val: string) => {
     setHslInput(val);
-    // Rough match: hsl(h, s%, l%)
     const match = val.match(/\s*hsl\s*\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)\s*/i);
     if (match) {
       const h = parseInt(match[1]) % 360;
@@ -157,47 +170,67 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
   };
 
   return (
-    <div className="space-y-3 p-3 lumora-glass border border-black/10 dark:border-white/[0.08] rounded-xl text-xs select-none shadow-xs">
+    <div className="space-y-3.5 p-3.5 velora-glass border border-black/10 dark:border-white/[0.08] rounded-xl text-xs select-none shadow-xs font-poppins text-left">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">{label}</span>
         
         {/* Dynamic Indicator swatch */}
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded border border-black/15 dark:border-white/20 shadow-xs" style={{ backgroundColor: value }} />
+          <div className="w-4 h-4 rounded-md border border-black/15 dark:border-white/20 shadow-xs" style={{ backgroundColor: value }} />
           <span className="text-[10px] font-mono text-neutral-800 dark:text-neutral-200 uppercase">{value}</span>
         </div>
       </div>
 
-      {/* Preset Swatches Row */}
-      <div className="space-y-1.5">
-        <span className="text-[9px] text-neutral-600 dark:text-neutral-400 block uppercase">Standard Colors</span>
-        <div className="flex flex-wrap gap-1.5">
-          {presetColors.map((color) => (
-            <button
-              key={color}
-              onClick={() => {
-                onChange(color);
-                addRecentColor(color);
-              }}
-              className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 cursor-pointer ${
-                value.toLowerCase() === color.toLowerCase() ? "ring-2 ring-neutral-400 dark:ring-white border-black" : "border-black/10 dark:border-white/10"
-              }`}
-              style={{ backgroundColor: color }}
-            />
+      {/* Curated Theme Palettes */}
+      <div className="space-y-2">
+        <span className="text-[9px] text-neutral-500 dark:text-neutral-450 block uppercase font-bold tracking-wider">Curated Palettes</span>
+        <div className="space-y-1.5">
+          {curatedPalettes.map((palette) => (
+            <div key={palette.name} className="p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-[#D4AF37]/35 transition-all">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[9.5px] font-bold text-neutral-800 dark:text-neutral-200">{palette.name}</span>
+                <span className="text-[8px] text-neutral-400 leading-none">{palette.description}</span>
+              </div>
+              <div className="flex gap-2">
+                {palette.colors.map((color) => {
+                  const isActive = value.toLowerCase() === color.toLowerCase();
+                  return (
+                    <button
+                      key={color}
+                      onClick={() => {
+                        onChange(color);
+                        addRecentColor(color);
+                      }}
+                      className={`w-7 h-7 rounded-lg border transition-all duration-200 transform hover:scale-110 active:scale-95 cursor-pointer relative flex items-center justify-center ${
+                        isActive 
+                          ? "border-[#D4AF37] ring-2 ring-[#D4AF37]/30 shadow-[0_0_8px_rgba(212,175,55,0.3)]" 
+                          : "border-black/10 dark:border-white/10"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {isActive && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white mix-blend-difference" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
       {/* Favorites Swatches Row */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 border-t border-black/5 dark:border-white/[0.04] pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] text-neutral-600 dark:text-neutral-400 block uppercase flex items-center gap-1">
+          <span className="text-[9px] text-neutral-600 dark:text-neutral-400 block uppercase flex items-center gap-1 font-bold">
             <Heart size={8} className="text-red-550 dark:text-red-400 fill-red-550 dark:fill-red-400" />
             <span>Favorites</span>
           </span>
           <button
             onClick={() => addFavoriteColor(value)}
-            className="text-[9px] text-[var(--accent-color)] hover:text-neutral-800 dark:hover:text-white flex items-center gap-0.5 transition-colors cursor-pointer"
+            className="text-[9px] text-[#D4AF37] hover:text-[#C19B34] flex items-center gap-0.5 transition-colors cursor-pointer"
             title="Add to Favorites"
           >
             <Plus size={8} /> Add Current
@@ -205,19 +238,22 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
         </div>
         {favoriteColors.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {favoriteColors.map((color) => (
-              <button
-                key={color}
-                onClick={() => {
-                  onChange(color);
-                  addRecentColor(color);
-                }}
-                className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 cursor-pointer ${
-                  value.toLowerCase() === color.toLowerCase() ? "ring-2 ring-neutral-400 dark:ring-white border-black" : "border-black/10 dark:border-white/10"
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
+            {favoriteColors.map((color) => {
+              const isActive = value.toLowerCase() === color.toLowerCase();
+              return (
+                <button
+                  key={color}
+                  onClick={() => {
+                    onChange(color);
+                    addRecentColor(color);
+                  }}
+                  className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 cursor-pointer ${
+                    isActive ? "ring-2 ring-[#D4AF37] border-black" : "border-black/10 dark:border-white/10"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              );
+            })}
           </div>
         ) : (
           <span className="text-[9px] text-neutral-500 dark:text-neutral-450 italic block">No favorites added yet.</span>
@@ -226,19 +262,22 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange
 
       {/* Recent Swatches Row */}
       {recentColors.length > 0 && (
-        <div className="space-y-1.5">
-          <span className="text-[9px] text-neutral-600 dark:text-neutral-400 block uppercase">Recent Colors</span>
+        <div className="space-y-1.5 border-t border-black/5 dark:border-white/[0.04] pt-2">
+          <span className="text-[9px] text-neutral-600 dark:text-neutral-400 block uppercase font-bold">Recent Colors</span>
           <div className="flex flex-wrap gap-1.5">
-            {recentColors.map((color, idx) => (
-              <button
-                key={idx}
-                onClick={() => onChange(color)}
-                className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 cursor-pointer ${
-                  value.toLowerCase() === color.toLowerCase() ? "ring-2 ring-neutral-400 dark:ring-white border-black" : "border-black/10 dark:border-white/10"
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
+            {recentColors.map((color, idx) => {
+              const isActive = value.toLowerCase() === color.toLowerCase();
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onChange(color)}
+                  className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 cursor-pointer ${
+                    isActive ? "ring-2 ring-[#D4AF37] border-black" : "border-black/10 dark:border-white/10"
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              );
+            })}
           </div>
         </div>
       )}

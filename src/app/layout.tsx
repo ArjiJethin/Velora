@@ -68,7 +68,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Lumora Book Studio — Transform Stories into Masterpieces",
+  title: "Velora Book Studio — Transform Stories into Masterpieces",
   description: "A premium creative platform that transforms stories into beautifully designed digital books.",
 };
 
