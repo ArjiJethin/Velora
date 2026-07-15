@@ -1,0 +1,570 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Defines the lifecycle role assigned to each user in Velora.
+enum UserRole {
+  AUTHOR
+  READER
+  ADMIN
+}
+
+/// Captures the active state of a user account.
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Tracks the editorial and publishing state of a book.
+enum BookStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Controls book visibility in the platform.
+enum Visibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+/// Describes the renderable element types supported by the editor.
+enum ElementType {
+  TEXT
+  IMAGE
+  SHAPE
+  TABLE
+  QUOTE
+  HEADER
+  FOOTER
+  DIVIDER
+}
+
+/// Classifies reusable assets stored in a workspace.
+enum AssetType {
+  IMAGE
+  COVER
+  PDF
+  EPUB
+  DOCUMENT
+}
+
+/// Standardizes the notification payload categories shown to users.
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SYSTEM
+}
+
+/// Describes the owning entity recorded by dashboard activity history.
+enum ActivityEntityType {
+  USER
+  WORKSPACE
+  BOOK
+  CHAPTER
+  PAGE
+  ELEMENT
+  ASSET
+  CHARACTER
+  LOCATION
+  NOTE
+  TIMELINE_EVENT
+  PUBLISHED_BOOK
+  SETTINGS
+}
+
+/// Describes the action that occurred for an activity log entry.
+enum ActivityAction {
+  BOOK_CREATED
+  BOOK_UPDATED
+  BOOK_PUBLISHED
+  CHAPTER_CREATED
+  PAGE_CREATED
+  IMAGE_UPLOADED
+  DOC_IMPORTED
+  THEME_CHANGED
+  USER_UPDATED
+  WORKSPACE_UPDATED
+  ELEMENT_UPDATED
+  ASSET_CREATED
+  NOTE_CREATED
+}
+
+/// Represents an account in Velora and anchors ownership, access, and notifications.
+model User {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String
+  email          String         @unique
+  passwordHash   String
+  refreshTokenHash String?
+  avatar         String?
+  bio            String?
+  role           UserRole       @default(READER)
+  status         UserStatus     @default(ACTIVE)
+  emailVerified  Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  workspaces     Workspace[]    @relation("UserWorkspaces")
+  favorites      Favorite[]     @relation("UserFavorites")
+  notifications  Notification[] @relation("UserNotifications")
+  writingGoals   WritingGoal[]  @relation("UserWritingGoals")
+  settings       UserSettings?
+  activityLogs   ActivityLog[]
+  createdWorkspaces Workspace[]  @relation("WorkspaceCreatedBy")
+  updatedWorkspaces Workspace[]  @relation("WorkspaceUpdatedBy")
+  createdBooks    Book[]         @relation("BookCreatedBy")
+  updatedBooks    Book[]         @relation("BookUpdatedBy")
+  createdBookContents BookContent[] @relation("BookContentCreatedBy")
+  updatedBookContents BookContent[] @relation("BookContentUpdatedBy")
+  createdBookVersions  BookVersion[] @relation("BookVersionCreatedBy")
+  createdChapters Chapter[]      @relation("ChapterCreatedBy")
+  updatedChapters Chapter[]      @relation("ChapterUpdatedBy")
+  createdPages    Page[]         @relation("PageCreatedBy")
+  updatedPages    Page[]         @relation("PageUpdatedBy")
+  createdElements  Element[]      @relation("ElementCreatedBy")
+  updatedElements  Element[]      @relation("ElementUpdatedBy")
+  createdAssets   Asset[]        @relation("AssetCreatedBy")
+  updatedAssets   Asset[]        @relation("AssetUpdatedBy")
+  createdCharacters Character[]  @relation("CharacterCreatedBy")
+  updatedCharacters Character[]  @relation("CharacterUpdatedBy")
+  createdLocations Location[]    @relation("LocationCreatedBy")
+  updatedLocations Location[]    @relation("LocationUpdatedBy")
+  createdTimelineEvents TimelineEvent[] @relation("TimelineEventCreatedBy")
+  updatedTimelineEvents TimelineEvent[] @relation("TimelineEventUpdatedBy")
+  createdNotes    Note[]         @relation("NoteCreatedBy")
+  updatedNotes    Note[]         @relation("NoteUpdatedBy")
+  createdPublishedBooks PublishedBook[] @relation("PublishedBookCreatedBy")
+  updatedPublishedBooks PublishedBook[] @relation("PublishedBookUpdatedBy")
+}
+
+/// Represents a creative project boundary that groups books and supporting content.
+model Workspace {
+  id           String        @id @default(uuid()) @db.Uuid
+  ownerId      String        @db.Uuid
+  name         String
+  description  String?
+  coverImage   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  createdById  String?       @db.Uuid
+  updatedById  String?       @db.Uuid
+
+  owner        User          @relation("UserWorkspaces", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy    User?         @relation("WorkspaceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy    User?         @relation("WorkspaceUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  books        Book[]
+  assets       Asset[]
+  characters   Character[]
+  locations    Location[]
+  notes        Note[]
+  timelineEvents TimelineEvent[]
+  activityLogs ActivityLog[]
+
+  @@index([ownerId])
+}
+
+/// Stores book-level metadata while keeping editor preferences separated.
+model Book {
+  id           String         @id @default(uuid()) @db.Uuid
+  workspaceId  String         @db.Uuid
+  title        String
+  subtitle     String?
+  genre        String?
+  synopsis     String?
+  coverImage   String?
+  language     String?
+  visibility   Visibility     @default(PRIVATE)
+  status       BookStatus     @default(DRAFT)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  createdById  String?        @db.Uuid
+  updatedById  String?        @db.Uuid
+
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy    User?          @relation("BookCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy    User?          @relation("BookUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bookContent  BookContent?
+  settings     BookSettings?
+  publishedBook PublishedBook?
+  favorites    Favorite[]
+  activityLogs ActivityLog[]
+
+  @@index([workspaceId])
+  @@index([title])
+}
+
+/// Stores the editable manuscript and high-level composition metrics for a book.
+model BookContent {
+  id               String        @id @default(uuid()) @db.Uuid
+  bookId           String        @unique @db.Uuid
+  currentVersionId  String?       @unique @db.Uuid
+  wordCount        Int           @default(0)
+  pageCount        Int           @default(0)
+  readingTime      Int           @default(0)
+  lastEdited       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+  createdById      String?       @db.Uuid
+  updatedById      String?       @db.Uuid
+
+  book             Book          @relation(fields: [bookId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy        User?         @relation("BookContentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy        User?         @relation("BookContentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  currentVersion    BookVersion?  @relation("BookContentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  versions         BookVersion[]  @relation("BookContentVersions")
+  chapters         Chapter[]
+
+  @@index([bookId])
+}
+
+/// Records immutable manuscript snapshots so the editor can restore past versions.
+model BookVersion {
+  id             String       @id @default(uuid()) @db.Uuid
+  bookContentId  String       @db.Uuid
+  versionNumber  Int
+  message        String?
+  createdAt      DateTime     @default(now())
+  createdById    String?      @db.Uuid
+
+  bookContent    BookContent  @relation("BookContentVersions", fields: [bookContentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  currentForContent BookContent? @relation("BookContentCurrentVersion")
+  createdBy      User?        @relation("BookVersionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([bookContentId, versionNumber])
+  @@index([bookContentId])
+}
+
+/// Groups chapters inside the manuscript and preserves the ordering of the draft.
+model Chapter {
+  id             String        @id @default(uuid()) @db.Uuid
+  bookContentId  String        @db.Uuid
+  title          String
+  summary        String?
+  order          Int
+  wordCount      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  bookContent    BookContent   @relation(fields: [bookContentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("ChapterCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("ChapterUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  pages          Page[]
+
+  @@index([bookContentId])
+  @@index([title])
+}
+
+/// Stores page-level layout and rendering boundaries for a chapter.
+model Page {
+  id             String        @id @default(uuid()) @db.Uuid
+  chapterId      String        @db.Uuid
+  pageNumber     Int
+  background     String?
+  paperStyle     String?
+  margin         String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  chapter        Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("PageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("PageUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  elements       Element[]
+
+  @@index([chapterId])
+}
+
+/// Represents a renderable editor element and keeps future editor metadata extensible.
+model Element {
+  id             String       @id @default(uuid()) @db.Uuid
+  pageId         String       @db.Uuid
+  type           ElementType
+  x              Float
+  y              Float
+  width          Float
+  height         Float
+  rotation       Float        @default(0)
+  opacity        Float        @default(1)
+  zIndex         Int          @default(0)
+  locked         Boolean      @default(false)
+  hidden         Boolean      @default(false)
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  createdById    String?      @db.Uuid
+  updatedById    String?      @db.Uuid
+
+  page           Page         @relation(fields: [pageId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?        @relation("ElementCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?        @relation("ElementUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([pageId])
+}
+
+/// Stores reusable workspace assets and the metadata needed for previews and rendering.
+model Asset {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @db.Uuid
+  name           String
+  type           AssetType
+  url            String
+  thumbnailUrl   String?
+  storageProvider String?
+  checksum       String?
+  width          Int?
+  height         Int?
+  dominantColor  String?
+  size           BigInt?
+  mimeType       String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("AssetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("AssetUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workspaceId])
+}
+
+/// Stores character notes and references for a workspace's story planning.
+model Character {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @db.Uuid
+  name           String
+  description    String?
+  portrait       String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("CharacterCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("CharacterUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workspaceId])
+}
+
+/// Stores place references and visual anchors for a workspace's story planning.
+model Location {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @db.Uuid
+  name           String
+  description    String?
+  image          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("LocationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("LocationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workspaceId])
+}
+
+/// Tracks ordered story milestones and events for dashboard and planning views.
+model TimelineEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @db.Uuid
+  title          String
+  description    String?
+  eventDate      DateTime?
+  order          Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("TimelineEventCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("TimelineEventUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workspaceId])
+  @@index([title])
+}
+
+/// Stores ad hoc notes tied to a workspace for brainstorming and reference.
+model Note {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @db.Uuid
+  title          String
+  content        String
+  color          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("NoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("NoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([workspaceId])
+  @@index([title])
+}
+
+/// Stores publication metadata for books exposed to readers.
+model PublishedBook {
+  id             String        @id @default(uuid()) @db.Uuid
+  bookId         String        @unique @db.Uuid
+  slug           String        @unique
+  publishedAt    DateTime      @default(now())
+  views          Int           @default(0)
+  likes          Int           @default(0)
+  bookmarks      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+
+  book           Book          @relation(fields: [bookId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy      User?         @relation("PublishedBookCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updatedBy      User?         @relation("PublishedBookUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  /// TODO: Normalize views into a dedicated BookView table when analytics requires per-event tracking.
+  /// TODO: Normalize likes into a dedicated BookLike table when reactions become first-class entities.
+  /// TODO: Normalize bookmarks into a dedicated BookBookmark table when saves need detailed history.
+}
+
+/// Stores a user's saved books and supports reader-library style interactions.
+model Favorite {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  bookId     String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  user       User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([bookId])
+}
+
+/// Stores user-facing notifications and read state for platform messaging.
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([title])
+}
+
+/// Stores writing goals and progress counters for the user dashboard.
+model WritingGoal {
+  id                     String   @id @default(uuid()) @db.Uuid
+  userId                 String   @unique @db.Uuid
+  dailyGoal              Int      @default(0)
+  weeklyGoal             Int      @default(0)
+  monthlyGoal            Int      @default(0)
+  currentDailyProgress   Int      @default(0)
+  currentWeeklyProgress  Int      @default(0)
+  currentMonthlyProgress Int      @default(0)
+
+  user                   User     @relation("UserWritingGoals", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+}
+
+/// Stores user preferences that should stay separate from the core user identity.
+model UserSettings {
+  id                     String   @id @default(uuid()) @db.Uuid
+  userId                 String   @unique @db.Uuid
+  themeMode              String?
+  accentColor            String?
+  language               String?
+  editorAutosaveInterval Int      @default(0)
+  reducedMotion          Boolean  @default(false)
+  defaultWorkspaceView    String?
+  notificationsEnabled   Boolean  @default(true)
+  emailNotifications     Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  deletedAt              DateTime?
+
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+/// Stores editor preferences for a specific book and keeps manuscript styling isolated.
+model BookSettings {
+  id                  String   @id @default(uuid()) @db.Uuid
+  bookId              String   @unique @db.Uuid
+  editorTheme         String?
+  paperTheme          String?
+  paperSize           String?
+  pageMargins         String?
+  pageNumberStyle     String?
+  defaultFont         String?
+  defaultFontSize     Int?
+  defaultLineHeight   Float?
+  defaultLetterSpacing Float?
+  defaultTextColor    String?
+  showPageNumbers     Boolean  @default(true)
+  defaultZoom         Float?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  book                Book     @relation(fields: [bookId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+/// Records dashboard-relevant events so the recent activity feed stays queryable and fast.
+model ActivityLog {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @db.Uuid
+  workspaceId  String?          @db.Uuid
+  bookId       String?          @db.Uuid
+  entityType   ActivityEntityType
+  entityId     String
+  action       ActivityAction
+  description  String?
+  createdAt    DateTime         @default(now())
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workspace    Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  book         Book?            @relation(fields: [bookId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([bookId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+}
